@@ -22,7 +22,7 @@ from docx import Document
 # 导入python-docx库的单位类，用于设置字体大小、页边距等
 from docx.shared import Pt, Cm, Twips, RGBColor
 # 导入文本对齐和行间距的枚举类型
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING, WD_TAB_ALIGNMENT
 # 导入表格对齐的枚举类型
 from docx.enum.table import WD_TABLE_ALIGNMENT
 # 导入XML命名空间相关的工具，用于设置中文字体
@@ -188,38 +188,8 @@ class OfficialDocumentGenerator:
         # 返回创建好的段落对象
         return p
     
-    # 添加密级
-    def add_doc_classification(self, classification: str):
-        """
-        添加密级
-        
-        参数说明：
-        - classification: 密级（机密/秘密/内部公开/外部公开）
-        """
-        # 添加一个新段落
-        p = self.doc.add_paragraph()
-        # 设置左对齐
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        
-        # 添加【密级：
-        run1 = p.add_run('【密级：')
-        # 设置字体为仿宋，16磅（3号字），黑色
-        self._set_run_font(run1, self.FONT_FANGSONG, 16, False)
-        
-        # 添加密级内容（红色）
-        run2 = p.add_run(classification)
-        # 设置字体为仿宋，16磅（3号字），红色
-        self._set_run_font(run2, self.FONT_FANGSONG, 16, False, 'FF0000')
-        
-        # 添加】
-        run3 = p.add_run('】')
-        # 设置字体为仿宋，16磅（3号字），黑色
-        self._set_run_font(run3, self.FONT_FANGSONG, 16, False)
-        
-        # 返回段落对象
-        return p
-    
-    # 添加集团名称
+   
+    # 添加集团名称  汇川技术
     def add_group(self, group_name: str = '汇川技术'):
         """
         添加集团名称
@@ -246,7 +216,41 @@ class OfficialDocumentGenerator:
         # 返回段落对象
         return p
     
-    # 添加发文字号
+    # 添加发文机关标志   XXX部(部门全称)文件
+    def add_issuer_mark(self, issuer: str, is_red: bool = False):
+        """
+        添加发文机关标志
+        
+        参数说明：
+        - issuer: 发文机关名称，如"XXX部"
+        - is_red: 是否用红色（True=红色，False=黑色），默认黑色
+        """
+        # 添加一个新段落
+        p = self.doc.add_paragraph()
+        # 设置居中对齐
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # 设置段前间距0磅
+        p.paragraph_format.space_before = Pt(0)
+        # 设置段后间距0磅
+        p.paragraph_format.space_after = Pt(0)
+        # 设置单倍行距
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+        
+        # 如果发文机关名称中没有"文件"二字，则自动加上
+        if '文件' not in issuer:
+            issuer += '文件'
+        
+        # 添加文字
+        run = p.add_run(issuer)
+        # 根据参数决定颜色，红色是'FF0000'，黑色是'000000'
+        color = 'FF0000' if is_red else '000000'
+        # 设置字体为宋体，42磅（初号），加粗
+        self._set_run_font(run, self.FONT_SONGTI, 42, True, color)
+        
+        # 返回段落对象
+        return p
+    
+    # 添加发文字号  XXX部（简称）〔2023〕X号
     def add_document_number(self, doc_number: str):
         """
         添加发文字号
@@ -273,39 +277,7 @@ class OfficialDocumentGenerator:
         # 返回段落对象
         return p
     
-    # 添加发文机关标志
-    def add_issuer_mark(self, issuer: str, is_red: bool = False):
-        """
-        添加发文机关标志
-        
-        参数说明：
-        - issuer: 发文机关名称，如"XXX部"
-        - is_red: 是否用红色（True=红色，False=黑色），默认黑色
-        """
-        # 添加一个新段落
-        p = self.doc.add_paragraph()
-        # 设置居中对齐
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        # 设置段前间距0磅
-        p.paragraph_format.space_before = Pt(0)
-        # 设置段后间距0磅
-        p.paragraph_format.space_after = Pt(0)
-        
-        # 如果发文机关名称中没有"文件"二字，则自动加上
-        if '文件' not in issuer:
-            issuer += '文件'
-        
-        # 添加文字
-        run = p.add_run(issuer)
-        # 根据参数决定颜色，红色是'FF0000'，黑色是'000000'
-        color = 'FF0000' if is_red else '000000'
-        # 设置字体为宋体，42磅（初号），加粗
-        self._set_run_font(run, self.FONT_SONGTI, 42, True, color)
-        
-        # 返回段落对象
-        return p
-    
-    # 添加签发人（上行文专用）
+    # 添加签发人 
     def add_signer(self, signer_name: str):
         """
         添加签发人（上行文专用）
@@ -349,12 +321,43 @@ class OfficialDocumentGenerator:
         
         # 添加37个"━"字符来模拟分隔线
         run = p.add_run('━' * 37)
-        # 设置字体为宋体，16磅，黑色
+        # 设置字体为宋体，12磅，黑色
         self._set_run_font(run, self.FONT_SONGTI, 12, False, '000000')
         
         # 返回段落对象
         return p
-    
+
+    # 添加密级
+    def add_doc_classification(self, classification: str):
+        """
+        添加密级
+        
+        参数说明：
+        - classification: 密级（机密/秘密/内部公开/外部公开）
+        """
+        # 添加一个新段落
+        p = self.doc.add_paragraph()
+        # 设置左对齐
+        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        
+        # 添加【密级：
+        run1 = p.add_run('【密级：')
+        # 设置字体为仿宋，16磅（3号字），黑色，加粗
+        self._set_run_font(run1, self.FONT_FANGSONG, 16, True)
+        
+        # 添加密级内容（红色）
+        run2 = p.add_run(classification)
+        # 设置字体为仿宋，16磅（3号字），红色，加粗
+        self._set_run_font(run2, self.FONT_FANGSONG, 16, True, 'FF0000')
+        
+        # 添加】
+        run3 = p.add_run('】')
+        # 设置字体为仿宋，16磅（3号字），黑色，加粗
+        self._set_run_font(run3, self.FONT_FANGSONG, 16, True)
+        
+        # 返回段落对象
+        return p
+   
     # 添加公文标题
     def add_title(self, title: str):
         """
@@ -615,8 +618,6 @@ class OfficialDocumentGenerator:
         
         # 添加成文日期段落
         p = self.doc.add_paragraph()
-        # 设置右对齐
-        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         # 设置段前间距0磅
         p.paragraph_format.space_before = Pt(0)
         # 设置段后间距0磅
@@ -624,28 +625,53 @@ class OfficialDocumentGenerator:
         # 设置行距固定24磅
         p.paragraph_format.line_spacing = Pt(24)
         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
-        # 添加成文日期文字
-        run = p.add_run(date)
+        
+        # 设置右对齐制表位（位置15.5厘米，与印发日期保持一致）
+        tab_stops = p.paragraph_format.tab_stops
+        tab_stops.add_tab_stop(Cm(15.5), WD_TAB_ALIGNMENT.RIGHT)
+        
+        # 添加制表符
+        run1 = p.add_run('\t')
         # 设置字体为仿宋，12磅（小四号）
-        self._set_run_font(run, self.FONT_FANGSONG, 12, False)
+        self._set_run_font(run1, self.FONT_FANGSONG, 12, False)
+        
+        # 添加成文日期文字
+        run2 = p.add_run(date)
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run2, self.FONT_FANGSONG, 12, False)
     
-    # 添加附注
-    def add_note(self, note: str):
+    # 添加主送机关
+    def add_main_send(self, main_send: str):
         """
-        添加附注
+        添加主送机关
         
         参数说明：
-        - note: 附注内容，如"联系人：张三，联系电话：024-12345678"
+        - main_send: 主送机关名称，如"集团各部门"
+
         """
+        # 添加版记分隔线
+        self._add_separator_line()
+
         # 添加一个新段落
         p = self.doc.add_paragraph()
-        # 设置首行缩进32磅（2个字符）
-        p.paragraph_format.first_line_indent = Pt(32)
+
+        # 设置段前间距0磅
+        p.paragraph_format.space_before = Pt(0)
+        # 设置段后间距0磅
+        p.paragraph_format.space_after = Pt(0)
+        # 设置行距固定24磅
+        p.paragraph_format.line_spacing = Pt(24)
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
         
-        # 添加附注文字，用括号括起来
-        run = p.add_run(f'（{note}）')
-        # 设置字体为仿宋，16磅
-        self._set_run_font(run, self.FONT_FANGSONG, 16, False)
+        # 添加"主送："文字
+        run1 = p.add_run('主送：')
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run1, self.FONT_FANGSONG, 12, False)
+        
+        # 添加主送机关名称
+        run2 = p.add_run(main_send)
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run2, self.FONT_FANGSONG, 12, False)
         
         # 返回段落对象
         return p
@@ -663,15 +689,24 @@ class OfficialDocumentGenerator:
         
         # 添加一个新段落
         p = self.doc.add_paragraph()
+
+        # 设置段前间距0磅
+        p.paragraph_format.space_before = Pt(0)
+        # 设置段后间距0磅
+        p.paragraph_format.space_after = Pt(0)
+        # 设置行距固定24磅
+        p.paragraph_format.line_spacing = Pt(24)
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+
         # 添加"抄送："文字
         run1 = p.add_run('抄送：')
-        # 设置字体为仿宋，14磅（4号字）
-        self._set_run_font(run1, self.FONT_FANGSONG, 14, False)
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run1, self.FONT_FANGSONG, 12, False)
         
         # 添加抄送机关名称，后面加上全角句号
         run2 = p.add_run(copy_to + '。')
-        # 设置字体为仿宋，14磅
-        self._set_run_font(run2, self.FONT_FANGSONG, 14, False)
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run2, self.FONT_FANGSONG, 12, False)
         
         # 返回段落对象
         return p
@@ -685,23 +720,39 @@ class OfficialDocumentGenerator:
         - print_org: 印发机关，如"集团办公室"
         - print_date: 印发日期，如"2026年3月13日"
         """
+
+        # 添加版记末条分隔线
+        self._add_separator_line()
+        
         # 添加一个新段落
         p = self.doc.add_paragraph()
         
+        # 设置段前间距0磅
+        p.paragraph_format.space_before = Pt(0)
+        # 设置段后间距0磅
+        p.paragraph_format.space_after = Pt(0)
+        # 设置行距固定24磅
+        p.paragraph_format.line_spacing = Pt(24)
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        
+        # 设置右对齐制表位（位置15.5厘米，在可用宽度范围内）
+        tab_stops = p.paragraph_format.tab_stops
+        tab_stops.add_tab_stop(Cm(15.5), WD_TAB_ALIGNMENT.RIGHT)
+        
         # 添加印发机关文字
         run1 = p.add_run(print_org)
-        # 设置字体为仿宋，14磅
-        self._set_run_font(run1, self.FONT_FANGSONG, 14, False)
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run1, self.FONT_FANGSONG, 12, False)
         
-        # 添加空格来分隔印发机关和印发日期
-        run2 = p.add_run(' ' * 20)
-        # 设置字体为仿宋，14磅
-        self._set_run_font(run2, self.FONT_FANGSONG, 14, False)
+        # 添加制表符
+        run2 = p.add_run('\t')
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run2, self.FONT_FANGSONG, 12, False)
         
         # 添加印发日期，后面加上"印发"二字
         run3 = p.add_run(f'{print_date}印发')
-        # 设置字体为仿宋，14磅
-        self._set_run_font(run3, self.FONT_FANGSONG, 14, False)
+        # 设置字体为仿宋，12磅（小四号）
+        self._set_run_font(run3, self.FONT_FANGSONG, 12, False)
         
         # 添加版记末条分隔线
         self._add_separator_line()
@@ -715,15 +766,15 @@ class OfficialDocumentGenerator:
         """
         # 添加一个新段落
         p = self.doc.add_paragraph()
-        # 设置段前间距4磅
-        p.paragraph_format.space_before = Pt(4)
-        # 设置段后间距4磅
-        p.paragraph_format.space_after = Pt(4)
+        # 设置段前间距0磅
+        p.paragraph_format.space_before = Pt(0)
+        # 设置段后间距0磅
+        p.paragraph_format.space_after = Pt(0)
         
-        # 添加50个"─"字符来模拟分隔线
-        run = p.add_run('─' * 50)
+        # 添加55个"─"字符来模拟分隔线
+        run = p.add_run('─' * 55)
         # 设置字体为宋体，8磅
-        self._set_run_font(run, self.FONT_SONGTI, 8, False)
+        self._set_run_font(run, self.FONT_SONGTI, 8, False, '000000')
     
     # 添加结尾语
     def add_closing(self, closing: str = '特此通知/通报。'):
@@ -785,10 +836,6 @@ def create_notice(content: Dict) -> OfficialDocumentGenerator:
     # 创建公文生成器实例
     gen = OfficialDocumentGenerator()
     
-    # 如果有密级，则添加密级
-    if content.get('classification'):
-        gen.add_doc_classification(content['classification'])
-    
     # 添加集团名称
     gen.add_group(content.get('group', '汇川技术'))
     
@@ -797,12 +844,14 @@ def create_notice(content: Dict) -> OfficialDocumentGenerator:
     # 添加发文字号
     gen.add_document_number(content.get('doc_number', ''))
     
-    # 如果有签发人，则添加签发人
-    if content.get('signer'):
-        gen.add_signer(content['signer'])
+    # 添加签发人
+    gen.add_signer(content['signer'])
     
     # 添加黑色分隔线
     gen.add_black_separator()
+    
+    # 添加密级
+    gen.add_doc_classification(content['classification'])
     
     # 添加标题
     gen.add_title(content.get('title', ''))
@@ -828,9 +877,8 @@ def create_notice(content: Dict) -> OfficialDocumentGenerator:
         else:
             gen.add_body_paragraph(para)
     
-    # 如果有结尾语，则添加结尾语
-    if content.get('closing'):
-        gen.add_closing(content['closing'])
+    # 添加结尾语：特此通知/通报
+    gen.add_closing(content['closing'])
     
     # 如果有附件，则添加附件说明
     if content.get('attachments'):
@@ -838,21 +886,19 @@ def create_notice(content: Dict) -> OfficialDocumentGenerator:
     
     # 添加成文日期
     gen.add_issue_date(content.get('date', ''))
-    
-    # 如果有附注，则添加附注
-    if content.get('note'):
-        gen.add_note(content['note'])
+
+    # 添加主送机关
+    gen.add_main_send(content['main_send'])
     
     # 如果有抄送机关，则添加抄送机关
     if content.get('copy_to'):
         gen.add_copy_send(content['copy_to'])
     
-    # 如果有印发机关，则添加印发机关和印发日期
-    if content.get('print_org'):
-        gen.add_print_info(
-            content.get('print_org', ''),
-            content.get('print_date', '')
-        )
+    # 添加印发机关和印发日期
+    gen.add_print_info(
+        content.get('print_org', ''),
+        content.get('print_date', '')
+    )
     
     # 返回配置好的公文生成器
     return gen
@@ -902,9 +948,9 @@ if __name__ == '__main__':
     example_content = {
         'classification': '内部公开',                      # 密级（机密/秘密/内部公开/外部公开）
         'group': '汇川技术',                               # 集团名称
-        'signer': '葛雍',                                  # 签发人
-        'issuer': '电梯事业部',                              # 发文机关
-        'doc_number': '总裁办公室B〔2026〕2号',                   # 发文字号
+        'signer': '薛斌峰',                                  # 签发人
+        'issuer': '电梯产品事业部',                              # 发文机关
+        'doc_number': '总裁办B〔2026〕2号',                   # 发文字号
         'title': '关于成立锂电行业PLC特种小分队及人员任命的通知',  # 公文标题
         'body': [                                         # 正文内容列表
             '为进一步规范集团互联网服务管理，加强网络安全防护，提升信息化管理水平，根据国家网络安全相关法律法规及集团信息化建设总体规划要求，集团决定对各部门、各子公司在互联网上提供的服务实施统一管理。现将有关事项通知如下：',
@@ -926,9 +972,9 @@ if __name__ == '__main__':
         'closing': '特此通知/通报。',                          # 结尾语
         'attachments': ['订阅号功能使用手册.pdf'],          # 附件列表
         'date': '2026年4月15日',                         # 成文日期
-        'note': '联系人：张三，联系电话：024-12345678', # 附注
-        'copy_to': '集团各部门',                          # 抄送机关
-        'print_org': '集团办公室',                        # 印发机关
+        'main_send': '项目组全体成员',                          # 主送机关
+        'copy_to': '朱兴明总裁、运功IPMT',                          # 抄送机关
+        'print_org': '汇川技术运控IPMT',                        # 印发机关
         'print_date': '2024年1月16日'                   # 印发日期
     }
     
