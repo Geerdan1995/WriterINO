@@ -13,6 +13,8 @@ import io
 from datetime import datetime
 # 导入类型提示模块，让代码更清晰
 from typing import Dict, List, Optional
+# 导入正则表达式模块，用于标题识别
+import re
 
 # 设置标准输出的编码为UTF-8，防止中文乱码
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -505,25 +507,64 @@ class OfficialDocumentGenerator:
         添加公文标题
         
         参数说明：
-        - title: 公文标题，如"关于开展安全生产的通知"
+        - title: 公文标题，支持用 * 手动换行，如"关于成立*ATH事业群的通知"
         """
-        # 添加一个新段落
-        p = self.doc.add_paragraph()
-        # 设置居中对齐
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        # 设置段前间距22磅（1行）
-        p.paragraph_format.space_before = Pt(8)
-        # 设置段后间距22磅（1行）
-        p.paragraph_format.space_after = Pt(8)
-        # 设置行间距为1.5倍
-        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+        # 处理标题换行
+        title_lines = []
         
-        # 添加标题文字
-        run = p.add_run(title)
-        # 设置字体为宋体，22磅（2号字），加粗
-        self._set_run_font(run, self.FONT_SONGTI, 22, True)
+        # 优先检测用户是否用 * 手动换行了
+        if '*' in title:
+            title_lines = title.split('*')
+        else:
+            # 没有 *，按16个字符自动换行
+            max_chars_per_line = 16
+            current_line = ''
+            for char in title:
+                if len(current_line) >= max_chars_per_line:
+                    title_lines.append(current_line)
+                    current_line = char
+                else:
+                    current_line += char
+            if current_line:
+                title_lines.append(current_line)
         
-        # 返回段落对象
+        # 如果只有一行，保持原来的格式
+        if len(title_lines) == 1:
+            p = self.doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(8)
+            p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+            run = p.add_run(title_lines[0])
+            self._set_run_font(run, self.FONT_SONGTI, 22, True)
+            return p
+        
+        # 如果有多行，按新格式设置
+        for i, line in enumerate(title_lines):
+            p = self.doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # 第一行：段前8磅，段后0磅，单倍行距
+            if i == 0:
+                p.paragraph_format.space_before = Pt(8)
+                p.paragraph_format.space_after = Pt(0)
+                p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+            # 最后一行：段前0磅，段后20磅，单倍行距
+            elif i == len(title_lines) - 1:
+                p.paragraph_format.space_before = Pt(0)
+                p.paragraph_format.space_after = Pt(20)
+                p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+            # 中间行（如果有）：段前0磅，段后0磅，单倍行距
+            else:
+                p.paragraph_format.space_before = Pt(0)
+                p.paragraph_format.space_after = Pt(0)
+                p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+            
+            # 添加文字
+            run = p.add_run(line)
+            self._set_run_font(run, self.FONT_SONGTI, 22, True)
+        
+        # 返回最后一个段落对象
         return p
     
     # 添加正文段落
@@ -770,7 +811,7 @@ class OfficialDocumentGenerator:
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
         # 设置行距固定24磅
-        p.paragraph_format.line_spacing = Pt(24)
+        p.paragraph_format.line_spacing = Pt(15)
         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
         
         # 设置右对齐制表位（位置15.5厘米，与印发日期保持一致）
@@ -810,8 +851,10 @@ class OfficialDocumentGenerator:
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
         # 设置行距固定24磅
-        p.paragraph_format.line_spacing = Pt(24)
-        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        # p.paragraph_format.line_spacing = Pt(24)
+        # p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        # 设置行间距为1倍
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
         
         # 添加"主送："文字
         run1 = p.add_run('主送：')
@@ -845,8 +888,11 @@ class OfficialDocumentGenerator:
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
         # 设置行距固定24磅
-        p.paragraph_format.line_spacing = Pt(24)
-        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        # p.paragraph_format.line_spacing = Pt(24)
+        # p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+
+        # 设置行间距为1倍
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
         # 添加"抄送："文字
         run1 = p.add_run('抄送：')
@@ -882,8 +928,11 @@ class OfficialDocumentGenerator:
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
         # 设置行距固定24磅
-        p.paragraph_format.line_spacing = Pt(24)
-        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        # p.paragraph_format.line_spacing = Pt(24)
+        # p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+
+        # 设置行间距为1倍
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
         
         # 设置右对齐制表位（位置15.5厘米，在可用宽度范围内）
         tab_stops = p.paragraph_format.tab_stops
@@ -920,6 +969,8 @@ class OfficialDocumentGenerator:
         p.paragraph_format.space_before = Pt(0)
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
+        # 设置行间距为1倍
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
         
         # 添加55个"─"字符来模拟分隔线
         run = p.add_run('─' * 55)
@@ -1008,20 +1059,20 @@ def create_notice(content: Dict) -> OfficialDocumentGenerator:
     
     # 遍历正文段落列表
     for para in content.get('body', []):
-        # 如果段落以"一、"、"二、"等开头，则作为一级标题
-        if para.startswith('一、') or para.startswith('二、') or para.startswith('三、'):
+        # 如果段落以"一、"、"二、"..."十一、"等中文数字开头，则作为一级标题
+        if re.match(r'^[一二三四五六七八九十百]+、', para):
             gen.add_heading_level1(para)
-        # 如果段落以"（一）"、"（二）"等开头，则作为二级标题
-        elif para.startswith('（一）') or para.startswith('（二）'):
+        # 如果段落以"（一）"、"（二）"..."（十一）"等中文数字括号开头，则作为二级标题
+        elif re.match(r'^（[一二三四五六七八九十百]+）', para):
             gen.add_heading_level2(para)
-        # 如果段落以"1."、"2."等开头，则作为三级标题
-        elif para.startswith('1.') or para.startswith('2.') or para.startswith('3.'):
+        # 如果段落以"1."、"2."..."100."等阿拉伯数字加点开头，则作为三级标题
+        elif re.match(r'^\d+\.', para):
             gen.add_heading_level3(para)
-        # 如果段落以"（1）"、"（2）"等开头，则作为四级标题
-        elif para.startswith('（1）') or para.startswith('（2）') or para.startswith('（3）'):
+        # 如果段落以"（1）"、"（2）"..."（100）"等阿拉伯数字括号开头，则作为四级标题
+        elif re.match(r'^（\d+）', para):
             gen.add_heading_level4(para)
-        # 如果段落以"①"、"②"等开头，则作为五级标题
-        elif para.startswith('①') or para.startswith('②') or para.startswith('③'):
+        # 如果段落以"①"、"②"..."⑳"等圈号数字开头，则作为五级标题
+        elif re.match(r'^[①-⑳]', para):
             gen.add_heading_level5(para)
         # 否则作为普通正文段落
         else:
@@ -1063,7 +1114,7 @@ DOCUMENT_TYPES = {
 
 
 # 生成党政机关公文（主入口函数）
-def generate_document(doc_type: str, content: Dict, output_path: Optional[str] = None) -> str:
+def generate_document(doc_type: str, content: Dict) -> str:
     """
     生成党政机关公文（主入口函数）
     
@@ -1072,9 +1123,6 @@ def generate_document(doc_type: str, content: Dict, output_path: Optional[str] =
     参数说明：
     - doc_type: 公文类型（通知）
     - content: 公文内容字典
-    - output_path: 输出文件路径（可选）
-                  - 如果提供完整路径，则使用该路径
-                  - 如果未提供或只提供目录，则自动生成文件名：{doc_number} {title}.docx
     
     返回值：
     - 生成的文件路径
@@ -1089,32 +1137,33 @@ def generate_document(doc_type: str, content: Dict, output_path: Optional[str] =
     # 根据公文类型获取对应的生成函数
     generator = DOCUMENT_TYPES[doc_type](content)
     
-    # 确定输出文件路径
-    final_output_path = output_path
+    # 固定保存路径
+    files_dir = r'E:\97、新一轮AI探索\WriterINO\files'
     
-    # 如果未指定输出路径，或者是一个目录，则自动生成文件名
-    if not final_output_path or os.path.isdir(final_output_path):
-        # 获取发文字号和标题
-        doc_number = content.get('doc_number', '未命名')
-        title = content.get('title', '公文')
-        
-        # 清理文件名中的非法字符
-        def sanitize_filename(filename):
-            # Windows文件名非法字符: \/:*?"<>|
-            illegal_chars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
-            for char in illegal_chars:
-                filename = filename.replace(char, '_')
-            return filename
-        
-        # 生成文件名：{doc_number} {title}.docx
-        filename = f'{doc_number} {title}.docx'
-        filename = sanitize_filename(filename)
-        
-        # 确定最终路径
-        if final_output_path and os.path.isdir(final_output_path):
-            final_output_path = os.path.join(final_output_path, filename)
-        else:
-            final_output_path = filename
+    # 自动创建目录（如果不存在）
+    os.makedirs(files_dir, exist_ok=True)
+    
+    # 获取发文字号和标题
+    doc_number = content.get('doc_number', '未命名')
+    title = content.get('title', '公文')
+    
+    # 删除标题中的*（*是手动换行标记，不应该出现在文件名中）
+    title_for_filename = title.replace('*', '')
+    
+    # 清理文件名中的非法字符
+    def sanitize_filename(filename):
+        # Windows文件名非法字符: \/:*?"<>|
+        illegal_chars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
+        for char in illegal_chars:
+            filename = filename.replace(char, '_')
+        return filename
+    
+    # 生成文件名：{doc_number} {title}.docx
+    filename = f'{doc_number} {title_for_filename}.docx'
+    filename = sanitize_filename(filename)
+    
+    # 拼接完整路径
+    final_output_path = os.path.join(files_dir, filename)
     
     # 保存文档到指定路径
     generator.save(final_output_path)
@@ -1129,43 +1178,71 @@ if __name__ == '__main__':
     # 定义示例公文内容
     example_content = {
         'classification': '内部公开',                      # 密级（机密/秘密/内部公开/外部公开）
-        'group': '汇川技术',                               # 集团名称
-        'signer': '葛雍',                                  # 签发人
-        'issuer': '电梯产品事业部',                              # 发文机关
-        'doc_number': '总裁办B〔2026〕2号',                   # 发文字号
-        'title': '关于成立移相变压器全铜方案优化降本专项及人员任命的通知',  # 公文标题
+        'group': '阿里巴巴',                               # 集团名称
+        'signer': '吴泳铭',                                  # 签发人
+        'issuer': '集团总裁办公室',                              # 发文机关
+        'doc_number': '阿里集团〔2025〕6号',                   # 发文字号
+        'title': '关于成立Alibaba Token Hub（ATH）*事业群的通知',  # 公文标题
         'body': [                                         # 正文内容列表
-            '一、项目背景',
-            '产品数据同源是电梯各业务变革落地的必要先决条件。当前，电梯产品事业部各SPDT产品线及各制造工厂存在产品主数据标准不统一、管理平台不一致的问题，引发内部信息传递冗余、信息偏差、流转效率低下等业务痛点。为更好满足业务侧对高质量数据使用的诉求，确保产品数据管理与集团数据管理要求保持一致，实现数据高效流转，保障数据融合工作有序推进，特成立电梯产品数据融合项目组，统筹相关事宜。',
-            '二、项目范围',
-            '门机类产品,线缆类产品(电缆&预制线数据)，大配套产品，天津工厂产品，嘉善钣金产品。',
-            '三、项目目标',
-            '（一）总目标',
-            '1. 完成项目范围内产品数据（物料、图纸、BOM、可配置模块、客户配置等）及相关流程的全量梳理，统一上线集团PLM系统。',
-            '2. 完成工艺规则定义与工艺信息数据的系统梳理与标准化，上线电梯MBOP系统，实现工艺数据规范化管理。',
-            '3. 打通前后端产品数据消费链路，完成集团PLM、电梯OMS、电梯MBOP、电梯SCM等系统的数据集成与交互，实现跨系统数据高效流转。',
-            '（二）研发侧目标任务分解',
-            '1. 梳理产品数据结构模型，定义产品的 BOM 架构。',
-            '2. 整理产品分类、物料分类、物料分类属性、配置规则及标准参数规则。',
-            '3. 对所有产品历史数据按照标准进行整理与迁移。',
-            '六、项目周期',
-            '项目组由跨公司、跨部门团队组成，采用集中讨论、分散办公的方式开展工作。项目经理负责项目管理和重大项目节点的汇报，并安排月度进展通报；组员须保证对项目的充分投入和高质量输出；子项目经理对项目核心成员具有考核权。',
-            '（一）项目周期',
-            '（1）项目周期',
-            '整体项目周期为9个月（2026年3月-2026年12月）。',
-            '本通知自发布之日起生效，聘期至项目结束时止。聘期内，由项目负责人根据项目目标与计划、关键任务节点等完成情况开展考核；请各受聘人员务必秉持“以成就客户为先、以贡献者为本、坚持开放协作、持续追求卓越”的核心价值观，严格遵循公司议事规则，全面履行岗位职责，确保项目目标如期达成。',
+            '一、总体要求',
+            '当前，人工智能技术正以前所未有的速度演进，AGI时代即将全面到来。大量数字化工作将由数以百亿计的AI Agent来支撑，而这些AI Agent将由模型产生的Token支撑运行，成为人类与数字世界交互的主要载体。为抢抓这一历史性机遇，全面推进集团AI战略落地，经集团董事会研究决定，现就成立Alibaba Token Hub（ATH）事业群有关事项通知如下。各事业群、各部门要充分认识到成立ATH事业群的重要战略意义，统一思想，凝聚共识，全力支持和配合ATH事业群的各项工作。',
+            '二、组织架构',
+            '（一）事业群定位',
+            '1. Alibaba Token Hub（ATH）事业群以平行于阿里云智能事业群、电商事业群的独立事业群形态存在，是集团AI战略的核心载体。',
+            '2. ATH事业群建立以"创造Token、输送Token、应用Token"为核心目标的新组织，全面统筹集团AI研发与应用。',
+            '3. 事业群由集团CEO吴泳铭直接负责，强化各AI业务战略协同，以AI重塑工作方式，保持敏捷组织。',
+            '（二）下属业务单元',
+            '1. 通义实验室：创造领先的多模态模型，不断追求基础模型能力上限，为集团和业界提供最领先模型。',
+            '2. MaaS业务线：构建高效开放的模型服务平台和技术体系，支撑全行业AI生态。',
+            '3. 千问事业部：打造最好的个人AI助手。',
+            '4. 悟空事业部：打造B端AI原生工作平台，将模型能力深度融入企业工作流。',
+            '5. AI创新事业部：探索各类AI创新应用，快速验证新模式、新市场。',
+            '三、主要职责',
+            '（一）创造Token',
+            '1. 通义实验室要持续加大基础研究投入，聚焦多模态大模型研发，不断突破模型能力边界。（1）加强算法创新，提升模型理解、生成、推理等核心能力；（2）推进多模态融合，实现文本、图像、音频、视频等多模态统一理解与生成；（3）优化模型效率，降低推理成本，提升服务性能。',
+            '2. 建立模型迭代机制，快速响应业务需求，持续优化模型效果。（1）建立业务反馈通道，及时收集各业务线对模型的需求和建议；（2）建立模型评估体系，定期评估模型性能，持续优化改进；（3）建立模型版本管理机制，确保模型迭代的稳定性和可靠性。',
+            '（二）输送Token',
+            '1. MaaS业务线要构建高效、稳定、开放的模型服务平台。① 优化服务架构，提升服务可用性和稳定性；② 开放API接口，为内部业务和外部客户提供便捷的模型调用服务；③ 建立服务监控体系，实时监控服务状态，及时处理异常问题。',
+            '2. 构建完善的技术支撑体系。① 建立模型部署平台，支持模型快速部署和上线；② 建立数据管理平台，为模型训练和优化提供数据支撑；③ 建立安全保障体系，确保模型服务和数据的安全。',
+            '（三）应用Token',
+            '1. 千问事业部要聚焦个人用户需求，打造最好的个人AI助手。（1）深入理解用户需求，持续优化产品体验；（2）拓展应用场景，覆盖学习、工作、生活等多个领域；（3）建立用户反馈机制，持续改进产品功能。',
+            '2. 悟空事业部要聚焦企业客户需求，打造B端AI原生工作平台。（1）深入理解企业工作流程，将模型能力深度融入企业工作流；（2）提供定制化服务，满足不同企业的个性化需求；（3）建立客户成功体系，帮助客户实现AI应用价值最大化。',
+            '3. AI创新事业部要保持敏锐的市场洞察力，快速探索各类AI创新应用。（1）建立创新孵化机制，支持内部创新项目；（2）加强与外部合作，探索新的商业模式；（3）建立快速验证机制，及时淘汰无效项目，聚焦有前景的方向。',
+            '四、组织保障',
+            '（一）加强组织领导',
+            '成立ATH事业群筹备工作组，由集团CEO吴泳铭任组长，相关部门负责人为成员，统筹推进事业群组建各项工作。筹备工作组下设办公室，设在集团总裁办公室，负责日常协调和推进工作。各相关部门要积极配合，确保事业群组建工作顺利推进。定期召开筹备工作会议，研究解决组建过程中的重大问题。',
+            '（二）完善人员配置',
+            '要高度重视ATH事业群的人才队伍建设，加大人才引进和培养力度。（1）从集团内部选拔优秀人才充实到ATH事业群；（2）加大外部人才引进力度，吸引全球顶尖AI人才加盟；（3）建立人才激励机制，为人才提供良好的发展空间和待遇。建立人才梯队，确保事业群可持续发展。',
+            '五、时间安排',
+            '（一）筹备阶段（2025年3月-4月）',
+            '1. 制定事业群组建方案，明确组织架构、职责分工和人员配置。集团总裁办公室牵头制定总体方案，各相关部门配合制定本部门对接方案。',
+            '2. 召开动员大会，统一思想认识。集团召开ATH事业群成立动员大会，对相关工作进行全面部署，各相关部门及时传达会议精神。',
+            '（二）组建阶段（2025年5月-6月）',
+            '1. 完成人员配置，组建事业群团队。按照组建方案，完成内部人员调配和外部人员招聘，组建完整的事业群团队。',
+            '2. 建立工作机制，确保事业群正常运转。建立事业群内部管理机制、沟通协调机制、决策机制等，确保事业群各项工作有序开展。',
+            '（三）运营阶段（2025年7月起）',
+            '1. 全面开展业务，推进AI战略落地。ATH事业群按照既定目标和计划，全面开展各项业务，推进集团AI战略落地。',
+            '2. 定期评估进展，持续优化改进。建立事业群运营评估机制，定期评估事业群运营情况，及时总结经验，持续优化改进。',
+            '六、有关要求',
+            '（一）提高思想认识',
+            '各事业群、各部门要充分认识到成立ATH事业群的重要战略意义，深刻认识到这是集团应对AGI时代挑战、抢抓AI发展机遇的重大战略举措。各级管理人员要带头学习AI知识，带头支持ATH事业群工作，发挥示范引领作用。全体员工要积极响应集团号召，主动学习和应用AI技术，为集团AI发展贡献力量。',
+            '（二）强化协同配合',
+            'ATH事业群的组建和运营是一项系统性工程，需要各事业群、各部门密切配合、协同推进。集团总裁办公室要做好统筹协调，建立跨部门协同工作机制。阿里云智能事业群、电商事业群等要主动与ATH事业群对接，在技术、数据、资源等方面给予支持。各职能部门要积极配合，为ATH事业群提供必要的资源保障和政策支持，形成工作合力。',
+            '（三）注重实效落地',
+            '要坚持问题导向、目标导向，紧密结合集团实际开展工作，防止形式主义。ATH事业群要从业务痛点出发，选择有实际需求、能带来实际价值的场景优先突破，确保各项工作取得实实在在的成效。要建立效果评估体系，定期评估工作成效，及时总结经验，不断优化完善。要鼓励创新，宽容失败，营造勇于探索、大胆实践的良好氛围。',
         ],
         'closing': '特此通知。',                          # 结尾语
-        'attachments': ['《项目计划书Benchmark》','《项目实施清单》','《项目预算清单》'],          # 附件列表
-        'date': '2026年4月15日',                         # 成文日期
-        'main_send': '项目组全体成员',                          # 主送机关
-        'copy_to': '朱兴明总裁、运控IPMT',                          # 抄送机关
-        'print_org': '汇川技术运控IPMT',                        # 印发机关
-        'print_date': '2024年1月16日'                   # 印发日期
+        'attachments': ['《ATH事业群组建方案》','《ATH事业群职责分工》','《ATH事业群人才计划》'],          # 附件列表
+        'date': '2025年3月16日',                         # 成文日期
+        'main_send': '各事业群、各部门',                          # 主送机关
+        'copy_to': '集团董事局',                          # 抄送机关
+        'print_org': '集团总裁办公室',                        # 印发机关
+        'print_date': '2025年3月16日'                   # 印发日期
     }
     
     # 调用generate_document函数生成通知类型的公文
-    # 不传output_path参数，会自动生成文件名：{doc_number} {title}.docx
+    # 文件会保存到：E:\97、新一轮AI探索\WriterINO\files 目录下
+    # 文件名格式为：{doc_number} {title}.docx
     output = generate_document('通知', example_content)
     # 打印成功消息
     print(f"公文已生成: {output}")
