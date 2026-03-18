@@ -1348,7 +1348,7 @@ if __name__ == '__main__':
     }
     
     # 模板文件路径
-    template_path = r'E:\97、新一轮AI探索\WriterINO\files\template.docx'
+    template_path = r'E:\97、新一轮AI探索\WriterINO\template\template.docx'
     
     # 方式一：从模板生成公文（推荐）
     # 文件会保存到：E:\97、新一轮AI探索\WriterINO\files 目录下
