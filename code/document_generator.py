@@ -15,6 +15,8 @@ from datetime import datetime
 from typing import Dict, List, Optional
 # 导入正则表达式模块，用于标题识别
 import re
+# 导入os模块，用于文件路径处理
+import os
 
 # 设置标准输出的编码为UTF-8，防止中文乱码
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -53,21 +55,54 @@ class OfficialDocumentGenerator:
     FONT_XIAOBIAOSONG = '方正小标宋_GBK'
     
     # 初始化公文生成器
-    def __init__(self):
+    def __init__(self, template_path: Optional[str] = None):
         """
         初始化公文生成器
         
+        参数说明：
+        - template_path: 模板文件路径（可选），如果提供则从模板创建文档
+        
         当创建这个类的实例时，会自动执行以下操作：
-        1. 创建一个新的Word文档
-        2. 设置页面格式（纸张大小、页边距等）
-        3. 设置文档默认样式
+        1. 创建一个新的Word文档或从模板加载文档
+        2. 如果使用模板，查找并删除 [PLACEHOLDER] 标记
+        3. 设置页面格式（纸张大小、页边距等）（仅当不使用模板时）
+        4. 设置文档默认样式（仅当不使用模板时）
         """
-        # 创建一个新的Word文档对象
-        self.doc = Document()
-        # 调用方法设置页面格式
-        self._setup_page()
-        # 调用方法设置文档样式
-        self._setup_styles()
+        # 如果提供了模板路径，则从模板创建文档
+        if template_path:
+            self.doc = Document(template_path)
+            # 查找并删除 [PLACEHOLDER] 标记
+            self._clear_template_placeholder()
+        else:
+            # 创建一个新的Word文档对象
+            self.doc = Document()
+            # 调用方法设置页面格式
+            self._setup_page()
+            # 调用方法设置文档默认样式
+            self._setup_styles()
+    
+    # 清空模板中的占位符标记（私有方法）
+    def _clear_template_placeholder(self):
+        """
+        查找并删除模板中的 [PLACEHOLDER] 标记
+        
+        这个方法会遍历文档中的所有段落，找到包含 [PLACEHOLDER] 的段落并删除它，
+        确保公文内容从文档最开头开始，避免出现空行。
+        """
+        # 定义占位符标记
+        placeholder = '[PLACEHOLDER]'
+        
+        # 遍历所有段落，查找占位符
+        # 注意：需要反向遍历，因为删除元素会改变索引
+        for i in range(len(self.doc.paragraphs) - 1, -1, -1):
+            paragraph = self.doc.paragraphs[i]
+            if placeholder in paragraph.text:
+                # 找到占位符，删除这个段落
+                p = paragraph._element
+                p.getparent().remove(p)
+                p._element = p._p = None
+                print(f"已删除模板占位符: {placeholder}")
+                break
     
     # 设置页面格式（私有方法）
     def _setup_page(self):
@@ -1021,21 +1056,87 @@ class OfficialDocumentGenerator:
         return filepath
 
 
+# ========== Word 转 PDF 功能 ==========
+
+def convert_docx_to_pdf(docx_path: str, pdf_path: Optional[str] = None) -> str:
+    """
+    将 Word 文档转换为 PDF 格式（使用 Microsoft Word 原生转换）
+    
+    注意：此功能需要在 Windows 系统上安装 Microsoft Word
+    
+    参数说明：
+    - docx_path: Word 文档路径
+    - pdf_path: PDF 输出路径（可选），如果不提供则使用与 Word 相同的路径，仅更改扩展名
+    
+    返回值：
+    - 生成的 PDF 文件路径
+    """
+    # 如果没有提供 PDF 路径，则自动生成
+    if pdf_path is None:
+        pdf_path = os.path.splitext(docx_path)[0] + '.pdf'
+    
+    try:
+        # 尝试使用 pywin32 调用 Word 进行转换
+        import win32com.client as win32
+        from pywintypes import com_error
+        
+        # 创建 Word 应用程序对象
+        word = win32.DispatchEx('Word.Application')
+        word.Visible = False  # 不显示 Word 窗口
+        word.DisplayAlerts = 0  # 不显示警告对话框
+        
+        try:
+            # 打开文档
+            doc = word.Documents.Open(os.path.abspath(docx_path))
+            
+            # 设置 PDF 导出格式（17 代表 PDF 格式）
+            wdFormatPDF = 17
+            
+            # 保存为 PDF
+            doc.SaveAs(os.path.abspath(pdf_path), FileFormat=wdFormatPDF)
+            
+            # 关闭文档
+            doc.Close()
+            
+            print(f"PDF 已生成: {pdf_path}")
+            return pdf_path
+            
+        finally:
+            # 退出 Word 应用程序
+            word.Quit()
+            
+    except ImportError:
+        # 如果没有安装 pywin32，给出提示
+        print("警告：未安装 pywin32 库，无法自动转换 PDF。")
+        print("请运行: pip install pywin32")
+        return None
+    except com_error as e:
+        # Word 相关错误
+        print(f"警告：Word 转换 PDF 失败: {e}")
+        print("请确保已安装 Microsoft Word。")
+        return None
+    except Exception as e:
+        # 其他错误
+        print(f"警告：转换 PDF 时发生错误: {e}")
+        return None
+
+
 # ========== 公文类型工厂函数 ==========
 
 # 创建通知类公文
-def create_notice(content: Dict) -> OfficialDocumentGenerator:
+def create_notice(content: Dict, template_path: Optional[str] = None) -> OfficialDocumentGenerator:
     """
     创建通知类公文
     
     参数说明：
     - content: 包含公文内容的字典
+    - template_path: 模板文件路径（可选）
     
     返回值：
     - 配置好的公文生成器对象
     """
-    # 创建公文生成器实例
-    gen = OfficialDocumentGenerator()
+    # 创建公文生成器实例（支持从模板创建）
+    gen = OfficialDocumentGenerator(template_path)
     
     # 添加集团名称
     gen.add_group(content.get('group', '汇川技术'))
@@ -1114,7 +1215,7 @@ DOCUMENT_TYPES = {
 
 
 # 生成党政机关公文（主入口函数）
-def generate_document(doc_type: str, content: Dict) -> str:
+def generate_document(doc_type: str, content: Dict, template_path: Optional[str] = None, generate_pdf: bool = True) -> str:
     """
     生成党政机关公文（主入口函数）
     
@@ -1123,9 +1224,11 @@ def generate_document(doc_type: str, content: Dict) -> str:
     参数说明：
     - doc_type: 公文类型（通知）
     - content: 公文内容字典
+    - template_path: 模板文件路径（可选），如果提供则从模板创建文档
+    - generate_pdf: 是否同时生成 PDF 文件（默认 True）
     
     返回值：
-    - 生成的文件路径
+    - 生成的 Word 文件路径
     """
     import os
     
@@ -1134,8 +1237,8 @@ def generate_document(doc_type: str, content: Dict) -> str:
         # 如果不支持，抛出错误提示
         raise ValueError(f"不支持的公文类型: {doc_type}。支持的类型: {list(DOCUMENT_TYPES.keys())}")
     
-    # 根据公文类型获取对应的生成函数
-    generator = DOCUMENT_TYPES[doc_type](content)
+    # 根据公文类型获取对应的生成函数（传递模板路径）
+    generator = DOCUMENT_TYPES[doc_type](content, template_path)
     
     # 固定保存路径
     files_dir = r'E:\97、新一轮AI探索\WriterINO\files'
@@ -1168,7 +1271,11 @@ def generate_document(doc_type: str, content: Dict) -> str:
     # 保存文档到指定路径
     generator.save(final_output_path)
     
-    # 返回文件路径
+    # 如果需要生成 PDF，则进行转换
+    if generate_pdf:
+        convert_docx_to_pdf(final_output_path)
+    
+    # 返回 Word 文件路径
     return final_output_path
 
 
@@ -1180,7 +1287,7 @@ if __name__ == '__main__':
         'classification': '内部公开',                      # 密级（机密/秘密/内部公开/外部公开）
         'group': '阿里巴巴',                               # 集团名称
         'signer': '吴泳铭',                                  # 签发人
-        'issuer': '集团总裁办公室',                              # 发文机关
+        'issuer': '集团办公室',                              # 发文机关
         'doc_number': '阿里集团〔2025〕6号',                   # 发文字号
         'title': '关于成立Alibaba Token Hub（ATH）*事业群的通知',  # 公文标题
         'body': [                                         # 正文内容列表
@@ -1240,12 +1347,19 @@ if __name__ == '__main__':
         'print_date': '2025年3月16日'                   # 印发日期
     }
     
-    # 调用generate_document函数生成通知类型的公文
+    # 模板文件路径
+    template_path = r'E:\97、新一轮AI探索\WriterINO\files\template.docx'
+    
+    # 方式一：从模板生成公文（推荐）
     # 文件会保存到：E:\97、新一轮AI探索\WriterINO\files 目录下
     # 文件名格式为：{doc_number} {title}.docx
-    output = generate_document('通知', example_content)
+    output = generate_document('通知', example_content, template_path)
     # 打印成功消息
-    print(f"公文已生成: {output}")
+    print(f"公文已生成（使用模板）: {output}")
+    
+    # 方式二：不使用模板，从零开始生成公文（保留原有功能）
+    # output = generate_document('通知', example_content)
+    # print(f"公文已生成（从零开始）: {output}")
 
 
 
