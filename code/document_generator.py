@@ -136,6 +136,106 @@ class OfficialDocumentGenerator:
         if color != '000000':
             # 将十六进制颜色字符串转换为RGB颜色对象并设置
             run.font.color.rgb = RGBColor.from_string(color)
+
+    # 将阿拉伯数字日期转换为中文日期格式（私有方法）
+    def _convert_date_to_chinese(self, date_str: str) -> str:
+        """
+        将阿拉伯数字日期转换为中文日期格式（私有方法）
+        
+        支持输入格式：
+        - "2026年3月13日"
+        - "二〇二六年三月十三日"（已为中文格式则原样返回）
+        
+        输出格式：
+        - "二〇二六年三月十三日"
+        
+        参数说明：
+        - date_str: 输入的日期字符串
+        
+        返回值：
+        - 转换后的中文日期字符串
+        """
+        # 定义中文数字映射表
+        chinese_nums = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+        
+        # 检查是否已经是中文格式（包含〇、一、二等字符）
+        has_chinese_num = any(c in date_str for c in ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'])
+        if has_chinese_num:
+            return date_str
+        
+        # 尝试解析日期字符串
+        # 使用正则表达式提取年、月、日
+        import re
+        pattern = r'(\d{4})年(\d{1,2})月(\d{1,2})日'
+        match = re.match(pattern, date_str)
+        
+        if not match:
+            # 如果匹配失败，尝试其他格式或返回原字符串
+            return date_str
+        
+        year = match.group(1)
+        month = int(match.group(2))
+        day = int(match.group(3))
+        
+        # 转换年份
+        chinese_year = ''.join([chinese_nums[int(d)] for d in year])
+        
+        # 转换月份
+        def num_to_chinese_month(num):
+            if num == 1:
+                return '一'
+            elif num == 2:
+                return '二'
+            elif num == 3:
+                return '三'
+            elif num == 4:
+                return '四'
+            elif num == 5:
+                return '五'
+            elif num == 6:
+                return '六'
+            elif num == 7:
+                return '七'
+            elif num == 8:
+                return '八'
+            elif num == 9:
+                return '九'
+            elif num == 10:
+                return '十'
+            elif num == 11:
+                return '十一'
+            elif num == 12:
+                return '十二'
+            else:
+                return str(num)
+        
+        chinese_month = num_to_chinese_month(month)
+        
+        # 转换日期
+        def num_to_chinese_day(num):
+            if num == 0:
+                return '〇'
+            elif num < 10:
+                return chinese_nums[num]
+            elif num == 10:
+                return '十'
+            elif num < 20:
+                return '十' + chinese_nums[num % 10]
+            elif num == 20:
+                return '二十'
+            elif num < 30:
+                return '二十' + chinese_nums[num % 10]
+            elif num == 30:
+                return '三十'
+            elif num == 31:
+                return '三十一'
+            else:
+                return str(num)
+        
+        chinese_day = num_to_chinese_day(day)
+        
+        # 组合成最终的中文日期
+        return f'{chinese_year}年{chinese_month}月{chinese_day}日'
     
     # 添加一个带格式的段落（私有方法）
     def _add_paragraph_with_font(self, text: str, font_name: str, font_size: int, 
@@ -232,7 +332,7 @@ class OfficialDocumentGenerator:
         # 设置段前间距0磅
         p.paragraph_format.space_before = Pt(0)
         # 设置段后间距0磅
-        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.space_after = Pt(10)
         # 设置单倍行距
         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
         
@@ -250,58 +350,97 @@ class OfficialDocumentGenerator:
         # 返回段落对象
         return p
     
-    # 添加发文字号  XXX部（简称）〔2023〕X号
-    def add_document_number(self, doc_number: str):
+    # 添加发文字号和签发人（合并版）
+    def add_document_header(self, doc_number: str, signer_name: Optional[str] = None):
         """
-        添加发文字号
+        添加发文字号和签发人（合并版）
+        
+        功能说明：
+        - 如果有签发人，则发文字号左对齐，签发人右对齐，在同一行
+        - 如果没有签发人，则发文字号居中对齐
         
         参数说明：
         - doc_number: 发文字号，如"全球行业管理中心〔2026〕1号"
+        - signer_name: 签发人姓名，可选参数，如不提供则只显示发文字号
         """
+        # 发文字号起始位置偏移量（厘米），如需调整请修改此值
+        DOC_NUMBER_TAB_POS = 0.2
+        
         # 添加一个新段落
         p = self.doc.add_paragraph()
-        # 设置居中对齐
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         # 设置段前间距8磅（0.5行）
         p.paragraph_format.space_before = Pt(8)
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
-        # 设置行间距为1.5倍
-        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+        # 设置行间距为1倍
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
         
-        # 添加文字
-        run = p.add_run(doc_number)
-        # 设置字体为仿宋，16磅（3号字），加粗
-        self._set_run_font(run, self.FONT_FANGSONG, 16, True)
+        if signer_name:
+            # 有签发人的情况：设置两个制表位
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            tab_stops = p.paragraph_format.tab_stops
+            # 第一个制表位：控制发文字号起始位置（左对齐）
+            if DOC_NUMBER_TAB_POS > 0:
+                tab_stops.add_tab_stop(Cm(DOC_NUMBER_TAB_POS), WD_TAB_ALIGNMENT.LEFT)
+            # 第二个制表位：签发人右对齐位置（固定15.5厘米）
+            tab_stops.add_tab_stop(Cm(15.5), WD_TAB_ALIGNMENT.RIGHT)
+            
+            # 添加制表符（到第一个制表位）
+            if DOC_NUMBER_TAB_POS > 0:
+                run0 = p.add_run('\t')
+                self._set_run_font(run0, self.FONT_FANGSONG, 16, False)
+            
+            # 添加发文字号
+            run1 = p.add_run(doc_number)
+            self._set_run_font(run1, self.FONT_FANGSONG, 16, True)
+            
+            # 添加制表符（到第二个制表位）
+            run2 = p.add_run('\t')
+            self._set_run_font(run2, self.FONT_FANGSONG, 16, False)
+            
+            # 添加"签发人："
+            run3 = p.add_run('签发人：')
+            self._set_run_font(run3, self.FONT_FANGSONG, 16, True)
+            
+            # 处理签发人姓名：两个字中间加空格
+            processed_signer = signer_name
+            if len(signer_name) == 2:
+                processed_signer = f'{signer_name[0]} {signer_name[1]}'
+            
+            # 添加签发人姓名
+            run4 = p.add_run(processed_signer)
+            self._set_run_font(run4, self.FONT_KAITI, 16, True)
+        else:
+            # 没有签发人的情况：发文字号居中
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(doc_number)
+            self._set_run_font(run, self.FONT_FANGSONG, 16, True)
         
-        # 返回段落对象
         return p
     
-    # 添加签发人 
+    # 添加发文字号  （已废弃，请使用 add_document_header）
+    def add_document_number(self, doc_number: str):
+        """
+        添加发文字号（已废弃，请使用 add_document_header）
+        
+        参数说明：
+        - doc_number: 发文字号，如"全球行业管理中心〔2026〕1号"
+        """
+        import warnings
+        warnings.warn('add_document_number 已废弃，请使用 add_document_header', DeprecationWarning, stacklevel=2)
+        return self.add_document_header(doc_number, None)
+    
+    # 添加签发人 （已废弃，请使用 add_document_header）
     def add_signer(self, signer_name: str):
         """
-        添加签发人（上行文专用）
+        添加签发人（已废弃，请使用 add_document_header）
         
         参数说明：
         - signer_name: 签发人姓名
         """
-        # 添加一个新段落
-        p = self.doc.add_paragraph()
-        # 设置右对齐
-        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        
-        # 添加"签发人："文字
-        run1 = p.add_run('签发人：')
-        # 设置字体为仿宋，16磅
-        self._set_run_font(run1, self.FONT_FANGSONG, 16, False)
-        
-        # 添加签发人姓名
-        run2 = p.add_run(signer_name)
-        # 设置字体为楷体，16磅
-        self._set_run_font(run2, self.FONT_KAITI, 16, False)
-        
-        # 返回段落对象
-        return p
+        import warnings
+        warnings.warn('add_signer 已废弃，请使用 add_document_header', DeprecationWarning, stacklevel=2)
+        raise RuntimeError('add_signer 已废弃，无法单独使用，请使用 add_document_header 同时传入发文字号和签发人')
     
     # 添加黑色分隔线（版头分隔线）
     def add_black_separator(self):
@@ -318,6 +457,8 @@ class OfficialDocumentGenerator:
         p.paragraph_format.space_before = Pt(0)
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
+        # 设置行间距为1倍
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
         
         # 添加37个"━"字符来模拟分隔线
         run = p.add_run('━' * 37)
@@ -371,9 +512,9 @@ class OfficialDocumentGenerator:
         # 设置居中对齐
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         # 设置段前间距22磅（1行）
-        p.paragraph_format.space_before = Pt(22)
+        p.paragraph_format.space_before = Pt(8)
         # 设置段后间距22磅（1行）
-        p.paragraph_format.space_after = Pt(22)
+        p.paragraph_format.space_after = Pt(8)
         # 设置行间距为1.5倍
         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
         
@@ -568,8 +709,11 @@ class OfficialDocumentGenerator:
         p = self.doc.add_paragraph()
         # 设置段前间距0磅
         p.paragraph_format.space_before = Pt(0)
-        # 设置段后间距0磅
-        p.paragraph_format.space_after = Pt(0)
+        # 设置段后间距：只有1个附件时为24磅，多个附件时为0磅
+        if len(attachments) == 1:
+            p.paragraph_format.space_after = Pt(24)
+        else:
+            p.paragraph_format.space_after = Pt(0)
         # 设置行间距为1.5倍
         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
         # 设置首行缩进24磅（2个字符）
@@ -594,8 +738,11 @@ class OfficialDocumentGenerator:
                 p2 = self.doc.add_paragraph()
                 # 设置段前间距0磅
                 p2.paragraph_format.space_before = Pt(0)
-                # 设置段后间距0磅
-                p2.paragraph_format.space_after = Pt(0)
+                # 设置段后间距：只有最后一行才设置为24磅
+                if i == len(attachments):
+                    p2.paragraph_format.space_after = Pt(24)
+                else:
+                    p2.paragraph_format.space_after = Pt(0)
                 # 设置行间距为1.5倍
                 p2.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
                 # 设置首行缩进24磅（2个字符）
@@ -611,7 +758,7 @@ class OfficialDocumentGenerator:
         添加成文日期
         
         参数说明：
-        - date: 成文日期，如"2026年3月13日"
+        - date: 成文日期，如"2026年3月13日"或"二〇二六年三月十三日"
         """
         # 添加一个空段落，用于调整间距
         self.doc.add_paragraph()
@@ -635,8 +782,11 @@ class OfficialDocumentGenerator:
         # 设置字体为仿宋，12磅（小四号）
         self._set_run_font(run1, self.FONT_FANGSONG, 12, False)
         
+        # 转换日期为中文格式
+        converted_date = self._convert_date_to_chinese(date)
+        
         # 添加成文日期文字
-        run2 = p.add_run(date)
+        run2 = p.add_run(converted_date)
         # 设置字体为仿宋，12磅（小四号）
         self._set_run_font(run2, self.FONT_FANGSONG, 12, False)
     
@@ -777,19 +927,19 @@ class OfficialDocumentGenerator:
         self._set_run_font(run, self.FONT_SONGTI, 8, False, '000000')
     
     # 添加结尾语
-    def add_closing(self, closing: str = '特此通知/通报。'):
+    def add_closing(self, closing: str = '特此通知/通报/公示。'):
         """
         添加结尾语
         
         参数说明：
-        - closing: 结尾语，默认是"特此通知/通报。"
+        - closing: 结尾语，默认是"特此通知/通报/公示。"
         """
         # 添加一个新段落
         p = self.doc.add_paragraph()
-        # 设置段前间距0磅
-        p.paragraph_format.space_before = Pt(0)
-        # 设置段后间距0磅
-        p.paragraph_format.space_after = Pt(0)
+        # 设置段前间距2行
+        p.paragraph_format.space_before = Pt(24)
+        # 设置段后间距2行
+        p.paragraph_format.space_after = Pt(24)
         # 设置行间距为1.5倍
         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
         # 设置首行缩进24磅（2个字符）
@@ -841,11 +991,11 @@ def create_notice(content: Dict) -> OfficialDocumentGenerator:
     
     # 添加发文机关标志
     gen.add_issuer_mark(content.get('issuer', ''))
-    # 添加发文字号
-    gen.add_document_number(content.get('doc_number', ''))
-    
-    # 添加签发人
-    gen.add_signer(content['signer'])
+    # 添加发文字号和签发人
+    gen.add_document_header(
+        content.get('doc_number', ''),
+        content.get('signer')
+    )
     
     # 添加黑色分隔线
     gen.add_black_separator()
@@ -913,7 +1063,7 @@ DOCUMENT_TYPES = {
 
 
 # 生成党政机关公文（主入口函数）
-def generate_document(doc_type: str, content: Dict, output_path: str) -> str:
+def generate_document(doc_type: str, content: Dict, output_path: Optional[str] = None) -> str:
     """
     生成党政机关公文（主入口函数）
     
@@ -922,11 +1072,15 @@ def generate_document(doc_type: str, content: Dict, output_path: str) -> str:
     参数说明：
     - doc_type: 公文类型（通知）
     - content: 公文内容字典
-    - output_path: 输出文件路径
+    - output_path: 输出文件路径（可选）
+                  - 如果提供完整路径，则使用该路径
+                  - 如果未提供或只提供目录，则自动生成文件名：{doc_number} {title}.docx
     
     返回值：
     - 生成的文件路径
     """
+    import os
+    
     # 检查公文类型是否支持
     if doc_type not in DOCUMENT_TYPES:
         # 如果不支持，抛出错误提示
@@ -934,11 +1088,39 @@ def generate_document(doc_type: str, content: Dict, output_path: str) -> str:
     
     # 根据公文类型获取对应的生成函数
     generator = DOCUMENT_TYPES[doc_type](content)
+    
+    # 确定输出文件路径
+    final_output_path = output_path
+    
+    # 如果未指定输出路径，或者是一个目录，则自动生成文件名
+    if not final_output_path or os.path.isdir(final_output_path):
+        # 获取发文字号和标题
+        doc_number = content.get('doc_number', '未命名')
+        title = content.get('title', '公文')
+        
+        # 清理文件名中的非法字符
+        def sanitize_filename(filename):
+            # Windows文件名非法字符: \/:*?"<>|
+            illegal_chars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
+            for char in illegal_chars:
+                filename = filename.replace(char, '_')
+            return filename
+        
+        # 生成文件名：{doc_number} {title}.docx
+        filename = f'{doc_number} {title}.docx'
+        filename = sanitize_filename(filename)
+        
+        # 确定最终路径
+        if final_output_path and os.path.isdir(final_output_path):
+            final_output_path = os.path.join(final_output_path, filename)
+        else:
+            final_output_path = filename
+    
     # 保存文档到指定路径
-    generator.save(output_path)
+    generator.save(final_output_path)
     
     # 返回文件路径
-    return output_path
+    return final_output_path
 
 
 # ========== 示例代码 ==========
@@ -948,38 +1130,43 @@ if __name__ == '__main__':
     example_content = {
         'classification': '内部公开',                      # 密级（机密/秘密/内部公开/外部公开）
         'group': '汇川技术',                               # 集团名称
-        'signer': '薛斌峰',                                  # 签发人
+        'signer': '葛雍',                                  # 签发人
         'issuer': '电梯产品事业部',                              # 发文机关
         'doc_number': '总裁办B〔2026〕2号',                   # 发文字号
-        'title': '关于成立锂电行业PLC特种小分队及人员任命的通知',  # 公文标题
+        'title': '关于成立移相变压器全铜方案优化降本专项及人员任命的通知',  # 公文标题
         'body': [                                         # 正文内容列表
-            '为进一步规范集团互联网服务管理，加强网络安全防护，提升信息化管理水平，根据国家网络安全相关法律法规及集团信息化建设总体规划要求，集团决定对各部门、各子公司在互联网上提供的服务实施统一管理。现将有关事项通知如下：',
-            '一、工作目标',
-            '通过对集团各部门、各子公司互联网服务资源的全面梳理与统一管理，建立健全互联网服务管理体系，消除安全隐患，保障信息系统安全稳定运行，提升集团整体信息化管理效能。',
-            '二、主要内容',
-            '请各部门、各子公司配合提供以下互联网服务相关信息：',
-            '（一）微信公众号',
-            '包括公众号名称、账号主体、运营负责人及联系方式。',
-            '（二）网站信息',
-            '包括网站名称、域名、IP地址、备案号、服务器位置。',
-            '三、工作要求',
-            '各单位要高度重视，认真组织，确保信息收集的全面性、准确性和及时性。',
-            '（1）微信公众号',
-            '要不要我再给你做一个Markdown代码块常见错误速查表，方便你以后快速排查问题。',
-            '①微信公众号',
-            '下面这段已经帮你修正了符号和缩进，你直接全选复制到 Markdown 编辑器里就能正常显示',
+            '一、项目背景',
+            '产品数据同源是电梯各业务变革落地的必要先决条件。当前，电梯产品事业部各SPDT产品线及各制造工厂存在产品主数据标准不统一、管理平台不一致的问题，引发内部信息传递冗余、信息偏差、流转效率低下等业务痛点。为更好满足业务侧对高质量数据使用的诉求，确保产品数据管理与集团数据管理要求保持一致，实现数据高效流转，保障数据融合工作有序推进，特成立电梯产品数据融合项目组，统筹相关事宜。',
+            '二、项目范围',
+            '门机类产品,线缆类产品(电缆&预制线数据)，大配套产品，天津工厂产品，嘉善钣金产品。',
+            '三、项目目标',
+            '（一）总目标',
+            '1. 完成项目范围内产品数据（物料、图纸、BOM、可配置模块、客户配置等）及相关流程的全量梳理，统一上线集团PLM系统。',
+            '2. 完成工艺规则定义与工艺信息数据的系统梳理与标准化，上线电梯MBOP系统，实现工艺数据规范化管理。',
+            '3. 打通前后端产品数据消费链路，完成集团PLM、电梯OMS、电梯MBOP、电梯SCM等系统的数据集成与交互，实现跨系统数据高效流转。',
+            '（二）研发侧目标任务分解',
+            '1. 梳理产品数据结构模型，定义产品的 BOM 架构。',
+            '2. 整理产品分类、物料分类、物料分类属性、配置规则及标准参数规则。',
+            '3. 对所有产品历史数据按照标准进行整理与迁移。',
+            '六、项目周期',
+            '项目组由跨公司、跨部门团队组成，采用集中讨论、分散办公的方式开展工作。项目经理负责项目管理和重大项目节点的汇报，并安排月度进展通报；组员须保证对项目的充分投入和高质量输出；子项目经理对项目核心成员具有考核权。',
+            '（一）项目周期',
+            '（1）项目周期',
+            '整体项目周期为9个月（2026年3月-2026年12月）。',
+            '本通知自发布之日起生效，聘期至项目结束时止。聘期内，由项目负责人根据项目目标与计划、关键任务节点等完成情况开展考核；请各受聘人员务必秉持“以成就客户为先、以贡献者为本、坚持开放协作、持续追求卓越”的核心价值观，严格遵循公司议事规则，全面履行岗位职责，确保项目目标如期达成。',
         ],
-        'closing': '特此通知/通报。',                          # 结尾语
-        'attachments': ['订阅号功能使用手册.pdf'],          # 附件列表
+        'closing': '特此通知。',                          # 结尾语
+        'attachments': ['《项目计划书Benchmark》','《项目实施清单》','《项目预算清单》'],          # 附件列表
         'date': '2026年4月15日',                         # 成文日期
         'main_send': '项目组全体成员',                          # 主送机关
-        'copy_to': '朱兴明总裁、运功IPMT',                          # 抄送机关
+        'copy_to': '朱兴明总裁、运控IPMT',                          # 抄送机关
         'print_org': '汇川技术运控IPMT',                        # 印发机关
         'print_date': '2024年1月16日'                   # 印发日期
     }
     
     # 调用generate_document函数生成通知类型的公文
-    output = generate_document('通知', example_content, 'example_notice.docx')
+    # 不传output_path参数，会自动生成文件名：{doc_number} {title}.docx
+    output = generate_document('通知', example_content)
     # 打印成功消息
     print(f"公文已生成: {output}")
 
