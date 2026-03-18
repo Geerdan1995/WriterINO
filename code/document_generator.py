@@ -1287,7 +1287,7 @@ if __name__ == '__main__':
         'classification': '内部公开',                      # 密级（机密/秘密/内部公开/外部公开）
         'group': '阿里巴巴',                               # 集团名称
         'signer': '吴泳铭',                                  # 签发人
-        'issuer': '集团办公室',                              # 发文机关
+        'issuer': '事业群办公室',                              # 发文机关
         'doc_number': '阿里集团〔2025〕6号',                   # 发文字号
         'title': '关于成立Alibaba Token Hub（ATH）*事业群的通知',  # 公文标题
         'body': [                                         # 正文内容列表
