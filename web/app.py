@@ -75,16 +75,11 @@ CATEGORIES = ["全部", "公文工具", "铭牌工具"]
 
 @app.route('/')
 def index():
-    stats = load_stats()
-    return render_template('index.html', tools=TOOLS, categories=CATEGORIES, stats=stats)
+    return render_template('base.html')
 
 @app.route('/tool/<tool_id>')
 def tool_page(tool_id):
-    tool = next((t for t in TOOLS if t["id"] == tool_id), None)
-    if not tool:
-        return "工具不存在", 404
-    stats = load_stats()
-    return render_template(f'tool_{tool_id}.html', tool=tool, categories=CATEGORIES, active_category=tool["category"], stats=stats)
+    return render_template('base.html')
 
 @app.route('/api/document/convert', methods=['POST'])
 def convert_document():
@@ -120,6 +115,26 @@ def convert_document():
             })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+@app.route('/api/tools')
+def get_tools():
+    stats = load_stats()
+    return jsonify({
+        "tools": TOOLS,
+        "categories": CATEGORIES,
+        "stats": stats
+    })
+
+@app.route('/api/tool/<tool_id>')
+def get_tool_detail(tool_id):
+    tool = next((t for t in TOOLS if t["id"] == tool_id), None)
+    if not tool:
+        return jsonify({"error": "工具不存在"}), 404
+    stats = load_stats()
+    return jsonify({
+        "tool": tool,
+        "stats": stats
+    })
 
 @app.route('/download/<filename>')
 def download_file(filename):

@@ -35,10 +35,10 @@
             <div class="text-right">
                 <p class="text-sm text-gray-600">
                     汇帮忙工具已累计帮助 
-                    <span class="font-bold text-blue-600" id="totalHelps">{{ stats.total_helps }}</span> 人次
+                    <span class="font-bold text-blue-600" id="totalHelps">0</span> 人次
                 </p>
                 <p class="text-xs text-gray-500">
-                    节省 <span class="font-bold" id="totalMinutes">{{ stats.total_minutes_saved }}</span> 分钟
+                    节省 <span class="font-bold" id="totalMinutes">0</span> 分钟
                 </p>
             </div>
         </div>
@@ -46,37 +46,11 @@
     
     <div class="flex max-w-7xl mx-auto">
         <aside class="w-64 bg-white shadow-sm min-h-screen border-r border-gray-200 p-4">
-            <nav class="space-y-1">
-                {% for category in categories %}
-                {% set is_active = false %}
-                {% if active_category %}
-                    {% if category == active_category %}
-                        {% set is_active = true %}
-                    {% endif %}
-                {% else %}
-                    {% if loop.first %}
-                        {% set is_active = true %}
-                    {% endif %}
-                {% endif %}
-                <button class="category-btn w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors {% if is_active %}bg-blue-50 text-blue-600{% else %}text-gray-700{% endif %}"
-                        data-category="{{ category }}">
-                    <div class="flex items-center space-x-2">
-                        {% if category == '全部' %}
-                        <iconify-icon icon="mdi:apps" width="20" height="20"></iconify-icon>
-                        {% elif category == '公文工具' %}
-                        <iconify-icon icon="mdi:file-document" width="20" height="20"></iconify-icon>
-                        {% elif category == '铭牌工具' %}
-                        <iconify-icon icon="mdi:ticket-percent" width="20" height="20"></iconify-icon>
-                        {% endif %}
-                        <span>{{ category }}</span>
-                    </div>
-                </button>
-                {% endfor %}
+            <nav id="categoryNav" class="space-y-1">
             </nav>
         </aside>
         
-        <main class="flex-1 p-6">
-            {% block content %}{% endblock %}
+        <main id="mainContent" class="flex-1 p-6">
         </main>
     </div>
     
