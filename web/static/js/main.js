@@ -95,25 +95,25 @@ function renderCategoryTools() {
         <div class="space-y-6">
             <div id="toolGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${filteredTools.map(tool => `
-                    <div class="tool-card group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                    <div class="tool-card group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
                          data-category="${tool.category}"
                          data-tool-id="${tool.id}">
-                        <div class="flex items-start space-x-4">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <div class="flex items-start space-x-4 flex-1">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform flex-shrink-0">
                                 ${tool.icon}
                             </div>
-                            <div class="flex-1">
+                            <div class="flex-1 min-w-0">
                                 <h3 class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                                     ${tool.name}
                                 </h3>
-                                <p class="text-sm text-gray-500 mt-1">
+                                <p class="text-sm text-gray-500 mt-1 line-clamp-2">
                                     ${tool.description}
                                 </p>
-                                <div class="flex items-center mt-2 text-xs text-gray-400">
-                                    <iconify-icon icon="mdi:timer-outline" width="14" height="14" class="mr-1"></iconify-icon>
-                                    <span>已使用 ${appData.stats.tools[tool.id].uses} 次</span>
-                                </div>
                             </div>
+                        </div>
+                        <div class="flex items-center mt-3 text-xs text-gray-400 flex-shrink-0">
+                            <iconify-icon icon="mdi:timer-outline" width="14" height="14" class="mr-1"></iconify-icon>
+                            <span>已使用 ${appData.stats.tools[tool.id].uses} 次</span>
                         </div>
                     </div>
                 `).join('')}
