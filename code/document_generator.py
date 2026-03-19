@@ -1005,7 +1005,11 @@ class OfficialDocumentGenerator:
         # 设置段后间距0磅
         p.paragraph_format.space_after = Pt(0)
         # 设置行间距为1倍
-        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+        # p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+        # 设置行距固定8磅
+        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        p.paragraph_format.line_spacing = Pt(8)
+
         
         # 添加55个"─"字符来模拟分隔线
         run = p.add_run('─' * 55)
@@ -1272,11 +1276,21 @@ def generate_document(doc_type: str, content: Dict, template_path: Optional[str]
     generator.save(final_output_path)
     
     # 如果需要生成 PDF，则进行转换
+    pdf_output_path = None
     if generate_pdf:
-        convert_docx_to_pdf(final_output_path)
+        pdf_output_path = convert_docx_to_pdf(final_output_path)
     
-    # 返回 Word 文件路径
-    return final_output_path
+    # 返回两个文件路径
+    if generate_pdf and pdf_output_path:
+        return {
+            'word_path': final_output_path,
+            'pdf_path': pdf_output_path
+        }
+    else:
+        return {
+            'word_path': final_output_path,
+            'pdf_path': None
+        }
 
 
 # ========== 示例代码 ==========

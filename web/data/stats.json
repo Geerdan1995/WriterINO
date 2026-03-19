@@ -1,0 +1,18 @@
+{
+  "total_helps": 5,
+  "total_minutes_saved": 110,
+  "tools": {
+    "document": {
+      "uses": 5,
+      "minutes_per_use": 22
+    },
+    "meeting_badge": {
+      "uses": 0,
+      "minutes_per_use": 0
+    },
+    "seat_badge": {
+      "uses": 0,
+      "minutes_per_use": 0
+    }
+  }
+}
