@@ -1,9 +1,9 @@
 {
-  "total_helps": 5,
-  "total_minutes_saved": 110,
+  "total_helps": 15,
+  "total_minutes_saved": 330,
   "tools": {
     "document": {
-      "uses": 5,
+      "uses": 15,
       "minutes_per_use": 22
     },
     "meeting_badge": {

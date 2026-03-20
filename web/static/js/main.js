@@ -43,14 +43,14 @@ function renderCategoryNav() {
     if (nav.children.length === 0) {
         nav.innerHTML = appData.categories.map(category => {
             const isActive = category === appData.currentCategory;
-            const icon = getCategoryIcon(category);
+            const icon = getCategoryIcon(category, isActive);
             return `
-                <button class="category-btn w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors ${isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}"
+                <button class="category-btn w-full text-left px-3.5 py-3 rounded-xl font-medium flex items-center space-x-3 ${isActive ? 'category-btn-active category-btn-transition' : 'text-gray-600 hover:bg-white/60 hover:text-gray-800'}"
                         data-category="${category}">
-                    <div class="flex items-center space-x-2">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center ${isActive ? 'bg-white/10' : 'bg-gray-100'}">
                         ${icon}
-                        <span>${category}</span>
                     </div>
+                    <span class="text-base">${category}</span>
                 </button>
             `;
         }).join('');
@@ -74,13 +74,23 @@ function updateCategoryNavHighlight() {
     nav.querySelectorAll('.category-btn').forEach(btn => {
         const category = btn.dataset.category;
         const isActive = category === appData.currentCategory;
+        const iconDiv = btn.querySelector('.w-9.h-9');
+        const iconElement = btn.querySelector('iconify-icon');
         
         if (isActive) {
-            btn.classList.add('bg-blue-50', 'text-blue-600');
-            btn.classList.remove('text-gray-700');
+            btn.classList.add('category-btn-active', 'category-btn-transition');
+            btn.classList.remove('text-gray-600', 'hover:bg-white/60', 'hover:text-gray-800');
+            iconDiv.classList.remove('bg-gray-100');
+            iconDiv.classList.add('bg-white/10');
+            iconElement.classList.remove('text-primary-500');
+            iconElement.classList.add('text-white');
         } else {
-            btn.classList.remove('bg-blue-50', 'text-blue-600');
-            btn.classList.add('text-gray-700');
+            btn.classList.remove('category-btn-active', 'category-btn-transition');
+            btn.classList.add('text-gray-600', 'hover:bg-white/60', 'hover:text-gray-800');
+            iconDiv.classList.remove('bg-white/10');
+            iconDiv.classList.add('bg-gray-100');
+            iconElement.classList.remove('text-white');
+            iconElement.classList.add('text-primary-500');
         }
     });
 }
@@ -94,26 +104,26 @@ function renderCategoryTools() {
     mainContent.innerHTML = `
         <div class="space-y-6">
             <div id="toolGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${filteredTools.map(tool => `
-                    <div class="tool-card group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+                ${filteredTools.map((tool, index) => `
+                    <div class="tool-card tool-card-hover glass-card rounded-3xl p-4 cursor-pointer flex flex-col border-0 fade-in-up stagger-${(index % 6) + 1}"
                          data-category="${tool.category}"
                          data-tool-id="${tool.id}">
-                        <div class="flex items-start space-x-4 flex-1">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform flex-shrink-0">
+                        <div class="flex items-start space-x-3.5 flex-1">
+                            <div class="w-12 h-12 icon-wrapper-light rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform flex-shrink-0 mt-1">
                                 ${tool.icon}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <h3 class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                <h3 class="text-base font-bold text-gray-800 group-hover:text-primary-600 transition-colors">
                                     ${tool.name}
                                 </h3>
-                                <p class="text-sm text-gray-500 mt-1 line-clamp-2">
+                                <p class="text-sm text-gray-500 mt-0.5 line-clamp-1 leading-relaxed">
                                     ${tool.description}
                                 </p>
                             </div>
                         </div>
-                        <div class="flex items-center mt-3 text-xs text-gray-400 flex-shrink-0">
-                            <iconify-icon icon="mdi:timer-outline" width="14" height="14" class="mr-1"></iconify-icon>
-                            <span>已使用 ${appData.stats.tools[tool.id].uses} 次</span>
+                        <div class="flex items-center mt-3 text-xs text-gray-400 flex-shrink-0 pt-2.5 border-t border-gray-100/50">
+                            <iconify-icon icon="mdi:timer-outline" width="15" height="15" class="mr-1.5"></iconify-icon>
+                            <span class="font-medium">已使用 ${appData.stats.tools[tool.id].uses} 次</span>
                         </div>
                     </div>
                 `).join('')}
@@ -129,13 +139,14 @@ function renderCategoryTools() {
     });
 }
 
-function getCategoryIcon(category) {
+function getCategoryIcon(category, isActive) {
+    const iconColor = isActive ? 'text-white' : 'text-primary-500';
     if (category === '全部') {
-        return '<iconify-icon icon="mdi:apps" width="20" height="20"></iconify-icon>';
+        return `<iconify-icon icon="mdi:apps" width="22" height="22" class="${iconColor}"></iconify-icon>`;
     } else if (category === '公文工具') {
-        return '<iconify-icon icon="mdi:file-document" width="20" height="20"></iconify-icon>';
+        return `<iconify-icon icon="mdi:file-document" width="22" height="22" class="${iconColor}"></iconify-icon>`;
     } else if (category === '铭牌工具') {
-        return '<iconify-icon icon="mdi:ticket-percent" width="20" height="20"></iconify-icon>';
+        return `<iconify-icon icon="mdi:ticket-percent" width="22" height="22" class="${iconColor}"></iconify-icon>`;
     }
     return '';
 }
@@ -179,7 +190,7 @@ function initSearch() {
                 const name = tool.name.toLowerCase();
                 const desc = tool.description.toLowerCase();
                 if (name.includes(query) || desc.includes(query)) {
-                    card.style.display = 'block';
+                    card.style.display = 'flex';
                 } else {
                     card.style.display = 'none';
                 }
@@ -215,78 +226,80 @@ function renderToolPage(toolId) {
 
 function renderDocumentToolPage(tool) {
     return `
-        <div class="max-w-3xl mx-auto space-y-6">
-            <button onclick="navigateTo('/')" class="inline-flex items-center text-blue-600 hover:text-blue-700">
-                <iconify-icon icon="mdi:arrow-left" width="20" height="20" class="mr-1"></iconify-icon>
+        <div class="max-w-4xl mx-auto space-y-5">
+            <button onclick="navigateTo('/')" class="inline-flex items-center text-gray-600 hover:text-primary-600 transition-colors font-medium">
+                <iconify-icon icon="mdi:arrow-left" width="22" height="22" class="mr-2"></iconify-icon>
                 返回首页
             </button>
             
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center space-x-4">
-                    <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center text-3xl">
+            <div class="glass-card rounded-3xl p-4 fade-in-up">
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-12 h-12 icon-wrapper rounded-xl flex items-center justify-center text-2xl floating">
                         ${tool.icon}
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900">${tool.name}</h1>
-                        <p class="text-gray-500">${tool.description}</p>
+                        <h1 class="text-xl font-bold text-gray-800">${tool.name}</h1>
+                        <p class="text-gray-500 mt-0.5 text-sm">${tool.description}</p>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="glass-card rounded-3xl p-6 fade-in-up stagger-2">
                 <div class="text-center">
                     <div id="uploadArea" 
-                         class="border-2 border-dashed border-gray-300 rounded-xl p-12 hover:border-blue-400 transition-colors cursor-pointer">
+                         class="upload-area border-3 border-dashed border-gray-200 rounded-3xl p-8 cursor-pointer">
                         <div id="uploadPrompt" class="space-y-4">
                             <div class="text-5xl">
-                                <iconify-icon icon="mdi:upload" class="mx-auto text-gray-400" width="64" height="64"></iconify-icon>
+                                <iconify-icon icon="mdi:upload" class="mx-auto text-gray-400" width="60" height="60"></iconify-icon>
                             </div>
                             <div>
-                                <p class="text-gray-600">将文件拖拽到此处</p>
-                                <p class="text-gray-400 text-sm mt-1">或者</p>
+                                <p class="text-gray-700 text-base font-medium">将文件拖拽到此处</p>
+                                <p class="text-gray-400 mt-1">或者</p>
                             </div>
                             <input type="file" id="fileInput" accept=".docx" class="hidden">
                             <button id="uploadBtn" 
-                                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    class="gradient-btn px-6 py-2.5 text-white rounded-xl font-medium text-base">
                                 点击上传文件（小于20M）
                             </button>
                         </div>
                         
                         <div id="fileInfo" class="hidden space-y-4">
                             <div class="text-5xl">
-                                <iconify-icon icon="mdi:file-document" class="mx-auto text-blue-500" width="64" height="64"></iconify-icon>
+                                <iconify-icon icon="mdi:file-document" class="mx-auto" style="color: #6366F1;" width="60" height="60"></iconify-icon>
                             </div>
-                            <p id="fileName" class="text-gray-900 font-medium"></p>
+                            <p id="fileName" class="text-gray-800 font-bold text-lg"></p>
                             <button id="resetBtn" 
-                                    class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                                    class="px-5 py-2 text-gray-600 hover:text-gray-800 font-medium border border-gray-200 rounded-lg hover:bg-white/60 transition-all">
                                 重新上传
                             </button>
                         </div>
                     </div>
                     
-                    <div class="mt-6 space-y-4">
-                        <div id="statusText" class="text-center text-gray-600 h-6"></div>
+                    <div id="actionArea" class="mt-6 space-y-4 hidden">
+                        <div id="statusText" class="text-center text-gray-600 h-6 font-medium text-base"></div>
                         
-                        <div id="progressContainer" class="hidden w-full max-w-md mx-auto">
-                            <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        <div id="progressContainer" class="hidden w-full max-w-lg mx-auto">
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="progressBar" class="progress-bar h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
                             </div>
                         </div>
                         
-                        <div class="flex justify-center space-x-4">
+                        <div class="flex justify-center space-x-3">
                             <button id="convertBtn" 
                                     disabled
-                                    class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                    class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold text-base hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-emerald-500 disabled:hover:to-emerald-600 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg">
                                 开始转换
                             </button>
                             
                             <button id="downloadWordBtn" 
-                                    class="hidden px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    class="hidden px-6 py-3 gradient-btn text-white rounded-xl font-bold text-base">
+                                <iconify-icon icon="mdi:microsoft-word" width="18" height="18"></iconify-icon>
                                 下载 Word
                             </button>
                             
                             <button id="downloadPdfBtn" 
-                                    class="hidden px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                                    class="hidden px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-bold text-base hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg btn-flex">
+                                <iconify-icon icon="mdi:file-pdf-box" width="18" height="18"></iconify-icon>
                                 下载 PDF
                             </button>
                         </div>
@@ -294,15 +307,30 @@ function renderDocumentToolPage(tool) {
                 </div>
             </div>
             
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">工具介绍及使用方法</h2>
-                <div class="space-y-4 text-gray-600">
-                    <p>公文格式优化是一款便捷的公文格式处理工具，支持将Word文档自动识别并优化为标准公文格式。</p>
-                    <ol class="list-decimal list-inside space-y-2">
-                        <li>点击"上传"按钮，选择需要优化格式的Word文档。</li>
-                        <li>确认文件已上传后，点击"开始转换"按钮。</li>
-                        <li>等待格式优化完成，状态显示"已完成请下载"。</li>
-                        <li>点击"点击下载"按钮，将优化后的公文保存到您的设备。</li>
+            <div class="glass-card rounded-3xl p-5 fade-in-up stagger-3">
+                <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <iconify-icon icon="mdi:information" width="20" height="20" class="mr-2 text-primary-500"></iconify-icon>
+                    工具介绍及使用方法
+                </h2>
+                <div class="space-y-3 text-gray-600 leading-relaxed">
+                    <p class="text-base">公文格式优化是一款便捷的公文格式处理工具，支持将Word文档自动识别并优化为标准公文格式。</p>
+                    <ol class="list-decimal list-inside space-y-2 ml-2">
+                        <li class="flex items-start">
+                            <span class="w-7 h-7 icon-wrapper-light rounded-lg flex items-center justify-center font-bold text-primary-600 mr-3 flex-shrink-0 text-sm">1</span>
+                            <span class="pt-0.5 text-sm">点击"上传"按钮，选择需要优化格式的Word文档。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-7 h-7 icon-wrapper-light rounded-lg flex items-center justify-center font-bold text-primary-600 mr-3 flex-shrink-0 text-sm">2</span>
+                            <span class="pt-0.5 text-sm">确认文件已上传后，点击"开始转换"按钮。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-7 h-7 icon-wrapper-light rounded-lg flex items-center justify-center font-bold text-primary-600 mr-3 flex-shrink-0 text-sm">3</span>
+                            <span class="pt-0.5 text-sm">等待格式优化完成，状态显示"已完成请下载"。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-7 h-7 icon-wrapper-light rounded-lg flex items-center justify-center font-bold text-primary-600 mr-3 flex-shrink-0 text-sm">4</span>
+                            <span class="pt-0.5 text-sm">点击下载按钮，将优化后的公文保存到您的设备。</span>
+                        </li>
                     </ol>
                 </div>
             </div>
@@ -320,28 +348,28 @@ function renderSeatBadgePage(tool) {
 
 function renderGenericToolPage(tool) {
     return `
-        <div class="max-w-3xl mx-auto space-y-6">
-            <button onclick="navigateTo('/')" class="inline-flex items-center text-blue-600 hover:text-blue-700">
-                <iconify-icon icon="mdi:arrow-left" width="20" height="20" class="mr-1"></iconify-icon>
+        <div class="max-w-4xl mx-auto space-y-8">
+            <button onclick="navigateTo('/')" class="inline-flex items-center text-gray-600 hover:text-primary-600 transition-colors font-medium">
+                <iconify-icon icon="mdi:arrow-left" width="22" height="22" class="mr-2"></iconify-icon>
                 返回首页
             </button>
             
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center space-x-4">
-                    <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center text-3xl">
+            <div class="glass-card rounded-3xl p-8 fade-in-up">
+                <div class="flex items-center space-x-6">
+                    <div class="w-20 h-20 icon-wrapper rounded-2xl flex items-center justify-center text-4xl">
                         ${tool.icon}
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900">${tool.name}</h1>
-                        <p class="text-gray-500">${tool.description}</p>
+                        <h1 class="text-3xl font-bold text-gray-800">${tool.name}</h1>
+                        <p class="text-gray-500 mt-2 text-lg">${tool.description}</p>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="text-center py-12">
-                    <iconify-icon icon="mdi:construction" class="mx-auto text-gray-400" width="64" height="64"></iconify-icon>
-                    <p class="mt-4 text-gray-600">该工具正在开发中，敬请期待！</p>
+            <div class="glass-card rounded-3xl p-16 fade-in-up stagger-2">
+                <div class="text-center">
+                    <iconify-icon icon="mdi:construction" class="mx-auto text-gray-400" width="100" height="100"></iconify-icon>
+                    <p class="mt-6 text-gray-600 text-xl font-medium">该工具正在开发中，敬请期待！</p>
                 </div>
             </div>
         </div>
@@ -360,6 +388,7 @@ function initDocumentToolPage() {
     const downloadWordBtn = document.getElementById('downloadWordBtn');
     const downloadPdfBtn = document.getElementById('downloadPdfBtn');
     const statusText = document.getElementById('statusText');
+    const actionArea = document.getElementById('actionArea');
     
     if (!uploadArea) return;
     
@@ -378,16 +407,16 @@ function initDocumentToolPage() {
     
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
-        uploadArea.classList.add('border-blue-400');
+        uploadArea.classList.add('drag-over');
     });
     
     uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('border-blue-400');
+        uploadArea.classList.remove('drag-over');
     });
     
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
-        uploadArea.classList.remove('border-blue-400');
+        uploadArea.classList.remove('drag-over');
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             handleFileSelect(files[0]);
@@ -409,6 +438,7 @@ function initDocumentToolPage() {
         fileName.textContent = file.name;
         uploadPrompt.classList.add('hidden');
         fileInfo.classList.remove('hidden');
+        actionArea.classList.remove('hidden');
         convertBtn.disabled = false;
     }
     
@@ -417,8 +447,8 @@ function initDocumentToolPage() {
         fileInput.value = '';
         uploadPrompt.classList.remove('hidden');
         fileInfo.classList.add('hidden');
-        convertBtn.disabled = false;
-        convertBtn.classList.remove('hidden');
+        actionArea.classList.add('hidden');
+        convertBtn.classList.add('hidden');
         downloadWordBtn.classList.add('hidden');
         downloadPdfBtn.classList.add('hidden');
         statusText.textContent = '';
@@ -449,7 +479,7 @@ function initDocumentToolPage() {
         formData.append('file', selectedFile);
         
         convertBtn.disabled = true;
-        convertBtn.textContent = '正在转换';
+        convertBtn.textContent = '正在转换...';
         
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
