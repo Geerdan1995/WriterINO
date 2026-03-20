@@ -31,7 +31,8 @@ def load_stats():
         "tools": {
             "document": {"uses": 0, "minutes_per_use": 22},
             "meeting_badge": {"uses": 0, "minutes_per_use": 0},
-            "seat_badge": {"uses": 0, "minutes_per_use": 0}
+            "seat_badge_suzhou": {"uses": 0, "minutes_per_use": 0},
+            "seat_badge_shenzhen": {"uses": 0, "minutes_per_use": 0}
         }
     }
 
@@ -63,9 +64,16 @@ TOOLS = [
         "category": "铭牌工具"
     },
     {
-        "id": "seat_badge",
-        "name": "座位名牌生成",
-        "description": "根据照片和表格，生成座位名牌PDF",
+        "id": "seat_badge_suzhou",
+        "name": "座位名牌生成(苏州)",
+        "description": "根据照片和表格，生成苏州格式座位名牌PDF",
+        "icon": "🪑",
+        "category": "铭牌工具"
+    },
+    {
+        "id": "seat_badge_shenzhen",
+        "name": "座位名牌生成(深圳)",
+        "description": "根据照片和表格，生成深圳格式座位名牌PDF",
         "icon": "🪑",
         "category": "铭牌工具"
     }

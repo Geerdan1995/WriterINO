@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- 底座 -->
+  <rect x="15" y="90" width="70" height="5" rx="2" fill="#555555" />
+  <rect x="20" y="87" width="60" height="3" rx="1" fill="#666666" />
+  <rect x="25" y="85" width="50" height="2" rx="1" fill="#777777" />
+  
+  <!-- 第一关节 -->
+  <circle cx="50" cy="82" r="5" fill="#777777" stroke="#555555" stroke-width="1" />
+  
+  <!-- 第一支架 - 底部垂直部分 -->
+  <path d="M50 77 L50 65" stroke="#777777" stroke-width="6" fill="none" stroke-linecap="round" />
+  
+  <!-- 第二关节 -->
+  <circle cx="50" cy="60" r="4" fill="#777777" stroke="#555555" stroke-width="1" />
+  
+  <!-- 第二支架 - 中间斜向部分 -->
+  <path d="M50 56 L65 40" stroke="#777777" stroke-width="5" fill="none" stroke-linecap="round" />
+  
+  <!-- 第三关节 -->
+  <circle cx="65" cy="40" r="4" fill="#777777" stroke="#555555" stroke-width="1" />
+  
+  <!-- 第三支架 - 连接灯头部分 -->
+  <path d="M65 36 L55 25" stroke="#777777" stroke-width="4" fill="none" stroke-linecap="round" />
+  
+  <!-- 灯头连接处 -->
+  <circle cx="55" cy="25" r="3.5" fill="#777777" stroke="#555555" stroke-width="1" />
+  
+  <!-- 灯头 - 侧视图 -->
+  <g transform="rotate(-15, 55, 20)">
+    <!-- 灯罩外部轮廓 - 侧视图 -->
+    <ellipse cx="55" cy="18" rx="18" ry="10" fill="#999999" />
+    
+    <!-- 灯罩内部 - 侧视图 -->
+    <ellipse cx="55" cy="18" rx="16" ry="8" fill="#cccccc" />
+    
+    <!-- 灯罩边缘 -->
+    <path d="M37 18 A18 10 0 0 0 73 18" stroke="#777777" stroke-width="1" fill="none" />
+    
+    <!-- 灯泡 - 侧视图 -->
+    <circle cx="55" cy="18" r="6" fill="#ffee88" />
+    <circle cx="55" cy="18" r="4" fill="#ffffff" opacity="0.7" />
+  </g>
+  
+  <!-- 灯头细节 - 侧视图 -->
+  <path d="M50 22 L48 20" stroke="#666666" stroke-width="1" fill="none" />
+  <path d="M60 22 L62 20" stroke="#666666" stroke-width="1" fill="none" />
+  
+  <!-- 灯罩内部结构 - 侧视图 -->
+  <path d="M55 28 C 60 25, 65 20, 70 18" stroke="#888888" stroke-width="0.5" fill="none" opacity="0.5" />
+  <path d="M55 28 C 50 25, 45 20, 40 18" stroke="#888888" stroke-width="0.5" fill="none" opacity="0.5" />
+</svg>

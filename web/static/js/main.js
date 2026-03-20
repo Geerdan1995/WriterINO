@@ -217,8 +217,10 @@ function renderToolPage(toolId) {
         initDocumentToolPage();
     } else if (toolId === 'meeting_badge') {
         mainContent.innerHTML = renderMeetingBadgePage(tool);
-    } else if (toolId === 'seat_badge') {
-        mainContent.innerHTML = renderSeatBadgePage(tool);
+    } else if (toolId === 'seat_badge_suzhou') {
+        mainContent.innerHTML = renderSeatBadgeSuzhouPage(tool);
+    } else if (toolId === 'seat_badge_shenzhen') {
+        mainContent.innerHTML = renderSeatBadgeShenzhenPage(tool);
     } else {
         mainContent.innerHTML = renderGenericToolPage(tool);
     }
@@ -342,7 +344,11 @@ function renderMeetingBadgePage(tool) {
     return renderGenericToolPage(tool);
 }
 
-function renderSeatBadgePage(tool) {
+function renderSeatBadgeSuzhouPage(tool) {
+    return renderGenericToolPage(tool);
+}
+
+function renderSeatBadgeShenzhenPage(tool) {
     return renderGenericToolPage(tool);
 }
 

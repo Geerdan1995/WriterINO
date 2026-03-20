@@ -10,7 +10,11 @@
       "uses": 0,
       "minutes_per_use": 0
     },
-    "seat_badge": {
+    "seat_badge_suzhou": {
+      "uses": 0,
+      "minutes_per_use": 0
+    },
+    "seat_badge_shenzhen": {
       "uses": 0,
       "minutes_per_use": 0
     }
