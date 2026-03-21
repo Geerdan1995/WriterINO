@@ -35,3 +35,6 @@ ENV/
 # 项目特定
 .trae/
 files/
+
+# 测试输出
+code/seat_badge_suzhou/test_output/
