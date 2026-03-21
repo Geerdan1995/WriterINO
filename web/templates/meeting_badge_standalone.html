@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会议名牌生成器</title>
+    <!-- 直接引入pinyin-pro库 -->
+    <script src="https://unpkg.com/pinyin-pro@3.18.6/dist/index.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        :root {
+            --primary-color: #3498db;
+            --primary-hover: #2980b9;
+            --secondary-color: #2ecc71;
+            --secondary-hover: #27ae60;
+            --accent-color: #e74c3c;
+            --text-color: #34495e;
+            --light-gray: #f5f7fa;
+            --border-color: #dfe4ea;
+            --shadow-color: rgba(0,0,0,0.05);
+            --card-bg: #ffffff;
+            --input-bg: #ffffff;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: var(--spacing-lg);
+            font-family: 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 4px 16px var(--shadow-color);
+            padding: var(--spacing-lg);
+            overflow-x: hidden;
+        }
+        
+        .preview-area {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            overflow-x: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .page {
+            position: relative;
+            width: 210mm;
+            margin: 0 auto;
+            padding: 0;
+            background: white;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 20px var(--shadow-color);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border-radius: 2px;
+            box-sizing: border-box;
+            max-width: calc(100% - 40px);
+            min-height: 297mm;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: var(--spacing-lg);
+            color: #00a884;
+            font-weight: 700;
+            font-size: 4rem;
+            letter-spacing: -0.5px;
+            text-shadow: 3px 3px 0 #fff, 5px 5px 0 rgba(0,0,0,0.3);
+            position: relative;
+            padding: 10px 0;
+            transform: translateZ(0);
+            -webkit-text-stroke: 2px rgba(255,100,100,0.5);
+            /* text-stroke: 2px rgba(255,100,100,0.5); */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* 标题两侧水印样式 */
+        .container {
+            position: relative;
+        }
+        
+        .container::before,
+        .container::after {
+            content: "Designed by 102878";
+            position: absolute;
+            top: 50px;
+            color: rgba(150, 150, 150, 0.2);
+            font-size: 1.2rem;
+            transform: rotate(45deg);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container::before {
+            left: 20px;
+        }
+        
+        .container::after {
+            right: 20px;
+        }
+        
+        .input-area {
+            margin-bottom: var(--spacing-lg);
+            background-color: var(--light-gray);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            border: none;
+        }
+        
+        .input-label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+        
+        #namesInput {
+            width: 100%;
+            height: 120px;
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-md);
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background-color: var(--input-bg);
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        #namesInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.15);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        
+        /* 爱心泡泡动画样式 - 扁平化风格 */
+        @keyframes float {
+            0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.9; }
+            50% { transform: translateY(-80px) scale(1.1) rotate(10deg); opacity: 0.6; }
+            100% { transform: translateY(-250px) scale(0.8) rotate(20deg); opacity: 0; }
+        }
+        
+        .heart {
+            position: absolute;
+            font-size: 28px;
+            color: var(--accent-color);
+            pointer-events: none;
+            z-index: 1000;
+            animation: float 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+            text-shadow: none;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: white;
+            box-shadow: none;
+        }
+        
+        #previewButton {
+            background-color: var(--primary-color);
+        }
+        
+        #previewButton:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px var(--shadow-color);
+        }
+        
+        .preview-area {
+            width: 100%;
+            margin: var(--spacing-lg) auto;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px var(--shadow-color);
+            background-color: var(--light-gray);
+            padding: 10mm 15mm 5mm 15mm;
+            border-radius: var(--radius-md);
+            box-sizing: border-box;
+        }
+        
+        .page {
+            width: 210mm;
+            height: 297mm;
+            background: var(--card-bg);
+            position: relative;
+            margin-bottom: 10mm;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px var(--shadow-color);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border-radius: var(--radius-sm);
+            box-sizing: border-box;
+            max-width: 100%;
+            /* 确保页面容器尺寸固定 */
+            min-height: 297mm;
+        }
+        
+        .page:not(:last-child):after {
+            content: '';
+            position: absolute;
+            bottom: -5mm;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent);
+            width: 80%;
+            margin: 0 auto;
+        }
+        .name {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            text-align: center;
+            font-size: 127px;
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
+            font-weight: 500;  
+            color: #000000;
+            text-shadow: none;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        /* 修改模式一名字的位置和样式 */
+        .name.name-1 { 
+            top: 23mm; /* 从80px转换为28mm */
+            z-index: 2;
+            color: #000; /* 确保名字颜色与背景对比明显 */
+        }
+        .name.name-2 { 
+            top: 121mm; /* 从377px转换为133mm */
+            z-index: 2;
+            color: #000; /* 确保名字颜色与背景对比明显 */
+        }
+        .name.name-3 { 
+            top: 220mm; /* 从674px转换为238mm */
+            z-index: 2;
+            color: #000; /* 确保名字颜色与背景对比明显 */
+        }
+        
+        /* 模式一：两个字名字的特殊样式 */
+        .name.two-chars {
+            letter-spacing: 1em; /* 增加字间距到1em */
+            text-align: center;
+            width: 100%;
+            padding-left: 0; /* 移除左内边距 */
+            box-sizing: border-box;
+            transform: none; /* 移除可能导致偏移的transform */
+            display: flex; /* 使用flex布局 */
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            margin-left: 0.5em; /* 整体微调 */
+        }
+        
+        /* 模式一：背景图片样式 */
+        .mode1-bg-image {
+            position: absolute;
+            width: 210mm;  /* A4纸宽度 */
+            height: 99mm;  /* A4纸高度的三分之一 */
+            left: 0;
+            z-index: 1;
+            object-fit: contain; /* 确保图片保持长宽比 */
+            object-position: center; /* 居中显示 */
+            max-width: 100%; /* 确保不会超出容器 */
+        }
+        
+        /* 模式二样式 */
+        .mode2-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            width: 100%;
+            height: 100%;
+            position: relative;
+            gap: 0;
+        }
+        
+        /* 添加水平分割线 */
+        .mode2-grid::before {
+            content: '';
+            position: absolute;
+            top: 25%;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        .mode2-grid::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        /* 添加第三条水平线 */
+        .horizontal-line {
+            position: absolute;
+            top: 75%;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        /* 添加垂直分割线 */
+        .vertical-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        /* 模式二：添加logo样式 */
+        .mode2-logo {
+            position: absolute;
+            top: 5mm;
+            left: 5mm;
+            height: 30px; /* 从15px改为45px，放大三倍 */
+            z-index: 2;
+        }
+        
+        /* 确保mode2-card保持相对定位 */
+        .mode2-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10mm 5mm;
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+        }
+        
+        .mode2-name {
+            font-size: 96px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10mm 0 10px 0; /* 添加了10mm的上边距，使姓名向下移动10毫米 */
+            line-height: 1;
+            color: #000000;
+            width: 100%;
+        }
+        
+        .mode2-pinyin {
+            font-size: 26px;
+            text-align: center;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            color: #000000;
+            width: 100%;
+            margin: 2mm 0 10px 0; /* 添加了2mm的上边距，使拼音向下移动 */
+            line-height: 1;
+        }
+        
+        /* 模式二：两个字名字的特殊样式 */
+        .mode2-name.two-chars {
+            letter-spacing: 0.3em; /* 减小字间距，使两个字更加居中 */
+            text-align: center;
+            width: 100%;
+            margin-top: 10mm; /* 保持与普通名字一致的上边距 */
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 0.15em; /* 调整左内边距以补偿字间距 */
+        }
+        
+        /* 模式三：两个字名字的特殊样式 */
+        .mode3-name.two-chars {
+            /* 基础样式会被JavaScript内联样式覆盖 */
+            text-align: center;
+            width: 100%;
+        }
+        
+        /* 模式三：英文名字的特殊样式 */
+        .mode3-name.english-name {
+            text-align: center;
+            width: 80%;
+            max-width: 180mm;
+            word-wrap: break-word;
+            word-break: normal;
+            white-space: pre-wrap;
+            margin: 0 auto;
+            padding: 0 10mm;
+        }
+        
+        .mode3-horizontal-line {
+            position: absolute;
+            width: 100%;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* 调整模式三的位置 - 三个字及以上的处理 */
+        .mode3-name.left {
+            top: 89mm; /* 从30%转换为89mm (297mm * 0.3) */
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(180deg);
+        }
+        
+        .mode3-name.right {
+            bottom: 89mm; /* 从30%转换为89mm (297mm * 0.3) */
+            left: 50%;
+            transform: translate(-50%, 50%);
+        }
+        
+        /* 模式三样式 */
+        .mode3-page {
+            position: relative;
+            width: 210mm; /* 纵向A4宽度 */
+            height: 297mm; /* 纵向A4高度 */
+            background: white;
+            page-break-after: always;
+            margin: 0 auto 10mm auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 20px var(--shadow-color);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border-radius: 2px;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        
+        .mode3-name {
+            position: absolute;
+            font-size: 140px;
+            font-weight: bold;
+            transform-origin: center;
+            text-align: center;
+            width: 100%;
+            color: #000000;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 模式四样式 */
+        .mode4-page {
+            position: relative;
+            width: 210mm; /* 纵向A4宽度 */
+            height: 297mm; /* 纵向A4高度 */
+            background: white;
+            page-break-after: always;
+            margin: 0 auto 10mm auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 20px var(--shadow-color);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border-radius: 2px;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        
+        .mode4-name {
+            position: absolute;
+            font-size: 140px;
+            font-weight: bold;
+            transform-origin: center;
+            text-align: center;
+            width: 100%;
+            color: #000000;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 模式四专用：英文名字的特殊样式 */
+        .mode4-name.english-name {
+            text-align: center;
+            width: 80%;
+            max-width: 180mm;
+            word-wrap: break-word;
+            word-break: normal;
+            white-space: pre-wrap;
+            margin: 0 auto;
+            padding: 0 10mm;
+        }
+        
+        /* 模式四专用：两个字名字的特殊样式 */
+        .mode4-name.two-chars {
+            text-align: center;
+            width: 100%;
+        }
+        
+        /* 模式四横线样式 */
+        .mode4-horizontal-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background-color: #aaaaaa;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* 模式四 Logo 样式 */
+        .mode4-logo {
+            position: absolute;
+            height: 14mm; /* 固定高度 */
+            z-index: 1;
+        }
+        
+        /* 模式四名字位置调整 */
+        .mode4-name.left {
+            position: absolute;
+            top: 30%; /* 调整上方名字的位置 */
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(180deg);
+        }
+        
+        .mode4-name.right {
+            position: absolute;
+            bottom: 30%; /* 调整下方名字的位置 */
+            left: 50%;
+            transform: translate(-50%, 50%);
+        }
+        
+        /* 模式五样式 */
+        .mode5-page {
+            position: relative;
+            width: 210mm; /* 纵向A4宽度 */
+            height: 297mm; /* 纵向A4高度 */
+            background: white;
+            page-break-after: always;
+            margin: 0 auto 10mm auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 20px var(--shadow-color);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border-radius: 2px;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        
+        .mode5-name {
+            position: absolute;
+            font-size: 160px;
+            font-weight: bold;
+            transform-origin: center;
+            text-align: center;
+            width: 100%;
+            color: #000000;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 模式五专用：英文名字的特殊样式 */
+        .mode5-name.english-name {
+            text-align: center;
+            width: 80%;
+            max-width: 180mm;
+            word-wrap: break-word;
+            word-break: normal;
+            white-space: pre-wrap;
+            margin: 0 auto;
+            padding: 0 10mm;
+        }
+        
+        /* 模式五专用：两个字名字的特殊样式 */
+        .mode5-name.two-chars {
+            text-align: center;
+            width: 100%;
+        }
+        
+        /* 模式五横线样式 */
+        .mode5-horizontal-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background-color: #aaaaaa;
+            border-top: 1px dashed #aaaaaa;
+            background: none;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* 模式五 Logo 样式 */
+        .mode5-logo {
+            position: absolute;
+            height: 14mm; /* 固定高度 */
+            z-index: 1;
+        }
+        
+        /* 模式五名字位置调整 */
+        .mode5-name.left {
+            position: absolute;
+            top: 32%; /* 调整上方名字的位置 */
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(180deg);
+        }
+        
+        .mode5-name.right {
+            position: absolute;
+            bottom: 32%; /* 调整下方名字的位置 */
+            left: 50%;
+            transform: translate(-50%, 50%);
+        }
+        
+        /* 模式五专用样式：小字说明文本 */
+        .mode5-text {
+            position: absolute;
+            width: 100%;
+            font-size: 14px;
+            text-align: center;
+            color: #000000;
+            z-index: 2;
+            font-weight: normal;
+        }
+        
+        @page {
+            size: A4;
+            margin: 0;
+            orphans: 0;
+            widows: 0;
+        }
+        @media print {
+            body { margin: 0; padding: 0; background-color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .container { max-width: none; margin: 0; padding: 0; box-shadow: none; background-color: white; }
+            h1, .input-area, .toolbar { display: none; }
+            .preview-area {
+                width: 210mm;
+                margin: 0;
+                border: none;
+                box-shadow: none;
+                background-color: white;
+                padding: 0;
+                overflow: visible;
+                display: block;
+                page-break-before: avoid;
+                break-before: avoid;
+            }
+            .page, .mode3-page, .mode4-page, .mode5-page {
+                margin: 0;
+                border: none;
+                box-shadow: none;
+                margin-bottom: 0;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                box-sizing: border-box;
+            }
+            .page:not(:last-child) {
+                page-break-after: always;
+                break-after: page;
+                height: 297mm;
+            }
+            .page:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+                height: 297mm;
+                box-sizing: border-box;
+            }
+            .page:not(:last-child):after {
+                display: none;
+            }
+
+        }
+        
+        /* 模式一：顶部logo样式 */
+        .top-logo {
+            display: none; /* 不再使用 */
+        }
+        
+        /* 模式一：底部logo样式 */
+        .mode1-logo:not(.top-logo) {
+            display: none; /* 不再使用 */
+        }
+        
+        /* 模式一：底部装饰图片样式 */
+        .mode1-card-image {
+            display: none; /* 不再使用 */
+        }
+        
+        /* 为每个名牌位置设置logo和底部图片位置 - 不再使用 */
+        .logo-1, .logo-2, .logo-3,
+        .card-image-1, .card-image-2, .card-image-3 {
+            display: none;
+        }
+        
+        /* 为每个名牌位置设置背景图片位置 */
+        .bg-image-1 {
+            top: 0;
+        }
+        
+        .bg-image-2 {
+            top: 99mm;
+        }
+        
+        .bg-image-3 {
+            top: 198mm; /* 设置为297mm - 99mm，确保底部对齐 */
+            /*height: 99mm;    */
+        }
+        
+        /* 模式六样式 - 复制模式二的样式 */
+        .mode6-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            width: 100%;
+            height: 100%;
+            position: relative;
+            gap: 0;
+        }
+        
+        /* 添加水平分割线 */
+        .mode6-grid::before {
+            content: '';
+            position: absolute;
+            top: 25%;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        .mode6-grid::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        /* 添加第三条水平线 */
+        .mode6-horizontal-line {
+            position: absolute;
+            top: 75%;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        /* 添加垂直分割线 */
+        .mode6-vertical-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+        
+        /* 模式六：添加logo样式 */
+        .mode6-logo {
+            position: absolute;
+            top: 6.5mm;
+            left: 6.5mm;
+            height: 34px; /* 原来30px的1.1倍 */
+            z-index: 2;
+        }
+        
+        /* 确保mode6-card保持相对定位 */
+        .mode6-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5mm 5mm;
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+        }
+        
+        .mode6-name {
+            font-size: 80px;
+            font-weight: bold;
+            text-align: center;
+            margin: 5mm 0 5px 0;
+            line-height: 1;
+            color: #000000;
+            width: 100%;
+        }
+        
+        .mode6-pinyin {
+            font-size: 16px;
+            text-align: center;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            color: #000000;
+            width: 100%;
+            margin: 0 0 5px 0;
+            line-height: 1;
+        }
+        
+        /* 模式六：两个字名字的特殊样式 */
+        .mode6-name.two-chars {
+            letter-spacing: 0.3em;
+            text-align: center;
+            width: 100%;
+            margin-top: 10mm;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 0.15em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><img src="/static/assets/meeting_badge/pixar-lamp.svg" alt="皮克斯小跳灯" style="height: 4rem; margin-right: 10px;">会议名牌生成器</h1>
+        <!-- 移除顶部工具栏，按钮将移至下方 -->
+        <div class="input-area">
+            <label class="input-label">请输入姓名，用中文顿号（、）分隔：</label>
+            <textarea id="namesInput" placeholder="例如：张三、李四、王五"></textarea>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label class="input-label">选择排版模式：</label>
+                <select id="layoutMode" style="padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); width: 100%; font-size: 16px; background-color: var(--input-bg);">
+                    <option value="mode1">模式一（单行大字）</option>
+                    <option value="mode2">模式二（中文+拼音）</option>
+                    <option value="mode3">模式三（对称旋转）</option>
+                    <option value="mode4">模式四（带横线标记）</option>
+                    <option value="mode5">模式五（汇川书院讲师席卡）</option>
+                    <option value="mode6">模式六（汇川书院学员胸贴）</option>
+                </select>
+            </div>
+            
+            <!-- 模式六底部文字输入 -->
+            <div id="mode6SubtextContainer" class="form-group" style="margin-bottom: 15px; display: none;">
+                <label class="input-label">模式六底部文字：</label>
+                <input type="text" id="mode6Subtext" placeholder="请输入底部小字内容，如：汇川书院新员工导师特训营" value="" style="padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); width: 100%; font-size: 16px; background-color: var(--input-bg);">
+            </div>
+            
+            <div class="button-group">
+                <button id="previewButton">生成预览</button>
+                <button id="printButton" style="background-color: var(--secondary-color);">打印</button>
+                <button id="pdfButton" style="background-color: var(--secondary-color);">保存PDF</button>
+            </div>
+        </div>
+        <div id="previewArea" class="preview-area"></div>
+    </div>
+    <script>
+        // 增加使用统计
+        function incrementUsage() {
+            fetch('/api/stats/increment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tool_id: 'meeting_badge' })
+            }).catch(err => console.error('Failed to update stats:', err));
+        }
+
+        // 添加变量跟踪排版模式是否已切换但未预览
+        let layoutChanged = false;
+        let currentLayoutMode = document.getElementById('layoutMode').value;
+        
+        function savePDF() {
+            // 在打印前清理可能导致空白页的元素
+            const pages = document.querySelectorAll('.page, .mode3-page');
+            // 确保最后一页不会导致额外的分页
+            if (pages.length > 0) {
+                pages[pages.length - 1].style.pageBreakAfter = 'avoid';
+                pages[pages.length - 1].style.breakAfter = 'avoid';
+            }
+            // 移除所有爱心泡泡元素，避免它们出现在打印页面上
+            document.querySelectorAll('.heart').forEach(heart => heart.remove());
+            window.print();
+        }
+        
+        // 为打印按钮添加事件监听器
+        document.getElementById('printButton').addEventListener('click', function() {
+            // 添加按钮点击效果
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'translateY(-2px)';
+            }, 150);
+            
+            // 添加爱心泡泡效果
+            createHearts(this);
+            
+            // 检查预览区域是否为空
+            const previewArea = document.getElementById('previewArea');
+            if (previewArea.innerHTML.trim() === '' || previewArea.innerHTML.includes('请输入至少一个姓名')) {
+                // 显示提示信息
+                alert('请先生成预览，查看效果后再打印！');
+                return;
+            }
+            
+            // 检查是否切换了排版模式但未生成预览
+            if (layoutChanged) {
+                alert('排版布局切换后，请先生成预览查看效果');
+                return;
+            }
+            
+            // 延迟执行打印功能，确保动画效果有时间显示
+            setTimeout(() => {
+                // 移除所有爱心泡泡元素，避免它们出现在打印页面上
+                document.querySelectorAll('.heart').forEach(heart => heart.remove());
+                incrementUsage();
+                window.print();
+            }, 300);
+        });
+        
+        // 为保存PDF按钮添加事件监听器
+        document.getElementById('pdfButton').addEventListener('click', function() {
+            // 添加按钮点击效果
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'translateY(-2px)';
+            }, 150);
+            
+            // 添加爱心泡泡效果
+            createHearts(this);
+            
+            // 检查预览区域是否为空
+            const previewArea = document.getElementById('previewArea');
+            if (previewArea.innerHTML.trim() === '' || previewArea.innerHTML.includes('请输入至少一个姓名')) {
+                // 显示提示信息
+                alert('请先生成预览，查看效果后再保存PDF！');
+                return;
+            }
+            
+            // 检查是否切换了排版模式但未生成预览
+            if (layoutChanged) {
+                alert('排版布局切换后，请先生成预览查看效果');
+                return;
+            }
+            
+            // 延迟执行保存PDF功能，确保动画效果有时间显示
+            setTimeout(() => {
+                // 移除所有爱心泡泡元素，避免它们出现在打印页面上
+                document.querySelectorAll('.heart').forEach(heart => heart.remove());
+                incrementUsage();
+                savePDF();
+            }, 300);
+        });
+        
+        // 添加输入框焦点效果
+        document.getElementById('namesInput').addEventListener('focus', function() {
+            this.parentElement.style.boxShadow = '0 0 0 3px rgba(76, 175, 80, 0.1)';
+        });
+        
+        document.getElementById('namesInput').addEventListener('blur', function() {
+            this.parentElement.style.boxShadow = 'none';
+        });
+        // 创建爱心泡泡效果函数
+        function createHearts(element) {
+            const heartsCount = 10;
+            // 获取按钮相对于视口的位置
+            const rect = element.getBoundingClientRect();
+            // 获取按钮在页面中的绝对位置
+            const buttonX = rect.left + window.scrollX;
+            const buttonY = rect.top + window.scrollY;
+            
+            // 创建表情符号数组
+            const characters = ['👍'];
+            
+            for (let i = 0; i < heartsCount; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                // 随机选择一个汉字
+                const randomIndex = Math.floor(Math.random() * characters.length);
+                heart.innerHTML = characters[randomIndex];
+                
+                // 随机位置和延迟
+                const offsetX = (Math.random() - 0.5) * 200;
+                const offsetY = (Math.random() - 0.5) * 50;
+                const delay = Math.random() * 0.8;
+                
+                // 设置初始位置 - 使用按钮的绝对位置
+                heart.style.left = (buttonX + element.offsetWidth / 2 + offsetX) + 'px';
+                heart.style.top = (buttonY + element.offsetHeight / 2 + offsetY) + 'px';
+                heart.style.animationDelay = delay + 's';
+                
+                document.body.appendChild(heart);
+                
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    heart.remove();
+                }, 1500 + delay * 1000);
+            }
+        }
+        
+        // 为排版模式选择添加事件监听器
+        document.getElementById('layoutMode').addEventListener('change', function() {
+            // 检测到模式变化，设置标志
+            if (this.value !== currentLayoutMode) {
+                layoutChanged = true;
+                currentLayoutMode = this.value;
+            }
+            
+            // 显示或隐藏模式六底部文字输入框
+            const mode6SubtextContainer = document.getElementById('mode6SubtextContainer');
+            if (this.value === 'mode6') {
+                mode6SubtextContainer.style.display = 'block';
+            } else {
+                mode6SubtextContainer.style.display = 'none';
+            }
+        });
+        
+        // 初始检查是否显示模式六底部文字输入框
+        window.addEventListener('DOMContentLoaded', function() {
+            const layoutMode = document.getElementById('layoutMode').value;
+            const mode6SubtextContainer = document.getElementById('mode6SubtextContainer');
+            if (layoutMode === 'mode6') {
+                mode6SubtextContainer.style.display = 'block';
+            }
+        });
+        
+        document.getElementById('previewButton').addEventListener('click', function() {
+            // 添加按钮点击效果
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'translateY(-2px)';
+            }, 150);
+            
+            // 添加爱心泡泡效果
+            createHearts(this);
+            
+            const namesInput = document.getElementById('namesInput').value;
+            const names = namesInput.split('、').filter(name => name.trim() !== '');
+            const previewArea = document.getElementById('previewArea');
+            const layoutMode = document.getElementById('layoutMode').value;
+            
+            // 重置排版模式变化标志
+            layoutChanged = false;
+            currentLayoutMode = layoutMode;
+            
+            previewArea.innerHTML = '';
+            
+            // 如果没有输入姓名，显示提示
+            if (names.length === 0) {
+                previewArea.innerHTML = '<div style="text-align: center; padding: 30px; color: #666;">请输入至少一个姓名</div>';
+                return;
+            }
+            
+            // 如果选择模式六，检查是否输入了底部文字
+            if (layoutMode === 'mode6') {
+                const mode6SubtextInput = document.getElementById('mode6Subtext');
+                if (!mode6SubtextInput || !mode6SubtextInput.value.trim()) {
+                    alert('请输入模式六底部显示的文字内容');
+                    return;
+                }
+            }
+
+            // 根据选择的模式生成不同的预览
+            if (layoutMode === 'mode1') {
+                // 模式一：每页3个大字名牌
+                for (let i = 0; i < names.length; i += 3) {
+                    const page = document.createElement('div');
+                    page.className = 'page';
+                    page.style.position = 'relative';
+                    page.style.width = '210mm';
+                    page.style.height = '297mm';
+                    page.style.background = 'white';
+                    
+                    // 计算当前页面应该包含的名字数量
+                    const namesInThisPage = Math.min(3, names.length - i);
+                    
+                    // 只有当有名字要显示时才创建页面
+                    if (namesInThisPage > 0) {
+                        for (let j = 0; j < namesInThisPage; j++) {
+                            // 添加背景图片
+                            const bgImage = document.createElement('img');
+                            bgImage.src = '/static/assets/meeting_badge/pic5.png';
+                            bgImage.className = `mode1-bg-image bg-image-${j+1}`;
+                            page.appendChild(bgImage);
+                            
+                            // 添加名字
+                            const nameDiv = document.createElement('div');
+                            nameDiv.className = 'name';
+                            const nameText = names[i + j].trim();
+                            nameDiv.textContent = nameText;
+                            
+                            // 如果是两个字的名字，添加特殊样式类
+                            if (nameText.length === 2) {
+                                nameDiv.classList.add('two-chars');
+                            }
+                            
+                            // 添加命名类
+                            nameDiv.classList.add(`name-${j+1}`);
+                            
+                            // 添加名字到页面
+                            page.appendChild(nameDiv);
+                        }
+                        
+                        previewArea.appendChild(page);
+                    }
+                }
+            } else if (layoutMode === 'mode3') {
+                // 模式三：横向A4纸对称旋转布局，每页一个名字
+                for (let i = 0; i < names.length; i++) {
+                    const page = document.createElement('div');
+                    page.className = 'mode3-page';
+                    
+                    const nameText = names[i].trim();
+                    
+                    // 添加上方图片（card2.png）- 向下移动48毫米
+                    const topImage = document.createElement('img');
+                    topImage.src = '/static/assets/meeting_badge/card2.png';
+                    topImage.style.position = 'absolute';
+                    topImage.style.top = '48mm';
+                    topImage.style.left = '0';
+                    topImage.style.width = '100%';
+                    topImage.style.zIndex = '1';
+                    page.appendChild(topImage);
+                    
+                    // 添加下方图片（pic4.png）- 向上移动48毫米
+                    const bottomImage = document.createElement('img');
+                    bottomImage.src = '/static/assets/meeting_badge/pic4.png';
+                    bottomImage.style.position = 'absolute';
+                    bottomImage.style.bottom = '48mm';
+                    bottomImage.style.left = '0';
+                    bottomImage.style.width = '100%';
+                    bottomImage.style.zIndex = '1';
+                    page.appendChild(bottomImage);
+                    
+                    // 创建上方名字（旋转180度）
+                    const leftName = document.createElement('div');
+                    leftName.className = 'mode3-name left';
+                    leftName.textContent = nameText;
+                    leftName.style.zIndex = '2'; // 确保文字在图片上方
+                    
+                    // 为所有页面统一设置上方名字的位置
+                    leftName.style.top = 'calc(30% + 17mm)'; // 向下移动20毫米
+                    leftName.style.left = '50%';
+                    leftName.style.width = '100%';
+                    leftName.style.textAlign = 'center';
+                    
+                    // 创建下方名字（正常方向）
+                    const rightName = document.createElement('div');
+                    rightName.className = 'mode3-name right';
+                    rightName.textContent = nameText;
+                    rightName.style.zIndex = '2'; // 确保文字在图片上方
+                    
+                    // 为所有页面统一设置下方名字的位置
+                    rightName.style.bottom = 'calc(30% + 17mm)'; // 向上移动20毫米
+                    rightName.style.left = '50%';
+                    rightName.style.width = '100%';
+                    rightName.style.textAlign = 'center';
+                    
+                    // 检测是否为英文名字（包含英文字母或空格）
+                    const isEnglishName = /[a-zA-Z\s]/.test(nameText);
+                    
+                    // 如果是英文名字且较长，需要特殊处理
+                    if (isEnglishName) {
+                        // 添加英文名字标识类
+                        leftName.classList.add('english-name');
+                        rightName.classList.add('english-name');
+                        
+                        // 根据名字长度动态调整字体大小
+                        let fontSize = 110; // 默认字体大小
+                        let lineHeight = 1.2; // 默认行高
+                        
+                        // 解析名字，处理可能包含连字符的情况
+                        const nameWords = nameText.split(/[\s-]+/).filter(word => word.trim() !== '');
+                        const totalLength = nameText.length;
+                        const wordCount = nameWords.length;
+                        
+                        // 动态调整字体大小
+                        if (totalLength > 20 || wordCount >= 4) {
+                            fontSize = 60; // 非常长的名字
+                            lineHeight = 1.1;
+                        } else if (totalLength > 15 || wordCount >= 3) {
+                            fontSize = 75; // 较长的名字
+                            lineHeight = 1.15;
+                        } else if (totalLength > 10 || wordCount >= 2) {
+                            fontSize = 90; // 中等长度的名字
+                        }
+                        
+                        // 应用字体大小和行高
+                        leftName.style.fontSize = `${fontSize}px`;
+                        rightName.style.fontSize = `${fontSize}px`;
+                        leftName.style.lineHeight = lineHeight.toString();
+                        rightName.style.lineHeight = lineHeight.toString();
+                        
+                        // 启用自动换行
+                        leftName.style.whiteSpace = 'pre-wrap';
+                        rightName.style.whiteSpace = 'pre-wrap';
+                        
+                        // 调整位置，确保文本居中显示
+                        leftName.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+                        rightName.style.transform = 'translate(-50%, 50%)';
+                        
+                        // 根据名字长度和结构决定如何分行显示
+                        let formattedText = nameText;
+                        
+                        // 特殊处理类似于"Schaerer-Lim Mei Qin Genevieve"这样的格式
+                        if (nameText.includes('-') || wordCount >= 3) {
+                            // 找到合适的分行点
+                            const midPoint = Math.min(Math.ceil(nameText.length / 2), nameText.indexOf(' ', nameText.length / 3));
+                            
+                            if (midPoint > 0) {
+                                // 将名字分为两行，尽量保持每行长度平衡
+                                const firstPart = nameText.substring(0, midPoint);
+                                const secondPart = nameText.substring(midPoint).trim();
+                                formattedText = `${firstPart}\n${secondPart}`;
+                            } else {
+                                // 如果找不到合适的分行点，按照单词数量分行
+                                const midWordIndex = Math.ceil(wordCount / 2);
+                                const firstLine = nameWords.slice(0, midWordIndex).join(' ');
+                                const secondLine = nameWords.slice(midWordIndex).join(' ');
+                                formattedText = `${firstLine}\n${secondLine}`;
+                            }
+                        }
+                        
+                        leftName.textContent = formattedText;
+                        rightName.textContent = formattedText;
+                    }
+                    // 如果是两个字的中文名字，添加特殊处理
+                    else if (nameText.length === 2) {
+                        leftName.classList.add('two-chars');
+                        rightName.classList.add('two-chars');
+                        
+                        // 对两个字的名字应用完全自定义的样式
+                        leftName.style.letterSpacing = '0.8em';
+                        rightName.style.letterSpacing = '0.8em';
+                        
+                        // 清除默认CSS类的transform
+                        leftName.style.transform = '';
+                        rightName.style.transform = '';
+                        
+                        // 上方名字（旋转的）需要独立调整
+                        leftName.style.transform = 'translate(calc(-50% - 0.4em), -50%) rotate(180deg)';
+                        
+                        // 下方名字也需要同样的水平调整，保持相同的偏移补偿
+                        rightName.style.transform = 'translate(calc(-50% + 0.4em), 50%)';
+                    } else {
+                        // 三个字及以上的中文名字处理
+                        // 清除默认CSS类的transform
+                        leftName.style.transform = '';
+                        rightName.style.transform = '';
+                        
+                        // 应用新的transform
+                        leftName.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+                        rightName.style.transform = 'translate(-50%, 50%)';
+                    }
+                    
+                    // 添加元素到页面
+                    page.appendChild(leftName);
+                    page.appendChild(rightName);
+                    
+                    // 添加页面到预览区域
+                    previewArea.appendChild(page);
+                }
+            } else if (layoutMode === 'mode2') {
+                // 模式二：网格布局，每页8个名牌（中文+拼音）
+                for (let i = 0; i < names.length; i += 8) {
+                    const page = document.createElement('div');
+                    page.className = 'page';
+                    page.style.position = 'relative';
+                    page.style.width = '210mm';
+                    page.style.height = '297mm';
+                    
+                    const grid = document.createElement('div');
+                    grid.className = 'mode2-grid';
+                    page.appendChild(grid);
+                    
+                    // 添加水平和垂直分割线
+                    const horizontalLine = document.createElement('div');
+                    horizontalLine.className = 'horizontal-line';
+                    grid.appendChild(horizontalLine);
+                    
+                    const verticalLine = document.createElement('div');
+                    verticalLine.className = 'vertical-line';
+                    grid.appendChild(verticalLine);
+                    
+                    // 计算当前页面应该包含的名字数量
+                    const namesInThisPage = Math.min(8, names.length - i);
+                    
+                    // 创建名牌
+                    for (let j = 0; j < namesInThisPage; j++) {
+                        const name = names[i + j].trim();
+                        const pinyin = toPinyin(name);
+                        
+                        const card = createMode2Card(name, pinyin);
+                        
+                        grid.appendChild(card);
+                    }
+                    
+                    previewArea.appendChild(page);
+                }
+            } else if (layoutMode === 'mode4') {
+                // 模式四：纵向A4纸对称旋转布局，每页一个名字，有横线和logo
+                for (let i = 0; i < names.length; i++) {
+                    const page = document.createElement('div');
+                    page.className = 'mode4-page';
+                    
+                    const nameText = names[i].trim();
+                    
+                    // 添加顶部横线
+                    const topLine = document.createElement('div');
+                    topLine.className = 'mode4-horizontal-line';
+                    topLine.style.top = '50mm';
+                    page.appendChild(topLine);
+                    
+                    // 添加中间横线
+                    const middleLine = document.createElement('div');
+                    middleLine.className = 'mode4-horizontal-line';
+                    middleLine.style.top = '50%';
+                    page.appendChild(middleLine);
+                    
+                    // 添加底部横线
+                    const bottomLine = document.createElement('div');
+                    bottomLine.className = 'mode4-horizontal-line';
+                    bottomLine.style.bottom = '50mm';
+                    page.appendChild(bottomLine);
+
+                    
+                    
+                    // 添加左上角logo
+                    const topLeftLogo = document.createElement('img');
+                    topLeftLogo.src = '/static/assets/meeting_badge/logo.png';
+                    topLeftLogo.className = 'mode4-logo';
+                    topLeftLogo.style.top = '160mm';
+                    topLeftLogo.style.left = '15mm';
+                    page.appendChild(topLeftLogo);
+                    
+                    // 添加右下角logo - 旋转180度
+                    const bottomRightLogo = document.createElement('img');
+                    bottomRightLogo.src = '/static/assets/meeting_badge/logo.png';
+                    bottomRightLogo.className = 'mode4-logo';
+                    bottomRightLogo.style.bottom = '160mm';
+                    bottomRightLogo.style.right = '15mm';
+                    bottomRightLogo.style.transform = 'rotate(180deg)';
+                    page.appendChild(bottomRightLogo);
+                    
+                    // 创建上方名字（旋转180度）
+                    const leftName = document.createElement('div');
+                    leftName.className = 'mode4-name left';
+                    leftName.textContent = nameText;
+                    leftName.style.zIndex = '2'; // 确保文字在图片上方
+                    
+                    // 创建下方名字（正常方向）
+                    const rightName = document.createElement('div');
+                    rightName.className = 'mode4-name right';
+                    rightName.textContent = nameText;
+                    rightName.style.zIndex = '2'; // 确保文字在图片上方
+                    
+                    // 检测是否为英文名字（包含英文字母或空格）
+                    const isEnglishName = /[a-zA-Z\s]/.test(nameText);
+                    
+                    // 如果是英文名字且较长，需要特殊处理
+                    if (isEnglishName) {
+                        // 添加英文名字标识类
+                        leftName.classList.add('english-name');
+                        rightName.classList.add('english-name');
+                        
+                        // 根据名字长度动态调整字体大小
+                        let fontSize = 110; // 默认字体大小
+                        let lineHeight = 1.2; // 默认行高
+                        
+                        // 解析名字，处理可能包含连字符的情况
+                        const nameWords = nameText.split(/[\s-]+/).filter(word => word.trim() !== '');
+                        const totalLength = nameText.length;
+                        const wordCount = nameWords.length;
+                        
+                        // 动态调整字体大小
+                        if (totalLength > 20 || wordCount >= 4) {
+                            fontSize = 60; // 非常长的名字
+                            lineHeight = 1.1;
+                        } else if (totalLength > 15 || wordCount >= 3) {
+                            fontSize = 75; // 较长的名字
+                            lineHeight = 1.15;
+                        } else if (totalLength > 10 || wordCount >= 2) {
+                            fontSize = 90; // 中等长度的名字
+                        }
+                        
+                        // 应用字体大小和行高
+                        leftName.style.fontSize = `${fontSize}px`;
+                        rightName.style.fontSize = `${fontSize}px`;
+                        leftName.style.lineHeight = lineHeight.toString();
+                        rightName.style.lineHeight = lineHeight.toString();
+                        
+                        // 启用自动换行
+                        leftName.style.whiteSpace = 'pre-wrap';
+                        rightName.style.whiteSpace = 'pre-wrap';
+                        
+                        // 调整位置，确保文本居中显示
+                        leftName.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+                        rightName.style.transform = 'translate(-50%, 50%)';
+                        
+                        // 根据名字长度和结构决定如何分行显示
+                        let formattedText = nameText;
+                        
+                        // 特殊处理类似于"Schaerer-Lim Mei Qin Genevieve"这样的格式
+                        if (nameText.includes('-') || wordCount >= 3) {
+                            // 找到合适的分行点
+                            const midPoint = Math.min(Math.ceil(nameText.length / 2), nameText.indexOf(' ', nameText.length / 3));
+                            
+                            if (midPoint > 0) {
+                                // 将名字分为两行，尽量保持每行长度平衡
+                                const firstPart = nameText.substring(0, midPoint);
+                                const secondPart = nameText.substring(midPoint).trim();
+                                formattedText = `${firstPart}\n${secondPart}`;
+                            } else {
+                                // 如果找不到合适的分行点，按照单词数量分行
+                                const midWordIndex = Math.ceil(wordCount / 2);
+                                const firstLine = nameWords.slice(0, midWordIndex).join(' ');
+                                const secondLine = nameWords.slice(midWordIndex).join(' ');
+                                formattedText = `${firstLine}\n${secondLine}`;
+                            }
+                        }
+                        
+                        leftName.textContent = formattedText;
+                        rightName.textContent = formattedText;
+                    }
+                    // 如果是两个字的中文名字，添加特殊处理
+                    else if (nameText.length === 2) {
+                        leftName.classList.add('two-chars');
+                        rightName.classList.add('two-chars');
+                        
+                        // 对两个字的名字应用完全自定义的样式
+                        leftName.style.letterSpacing = '0.8em';
+                        rightName.style.letterSpacing = '0.8em';
+                        
+                        // 清除默认CSS类的transform
+                        leftName.style.transform = '';
+                        rightName.style.transform = '';
+                        
+                        // 上方名字（旋转的）需要独立调整
+                        leftName.style.transform = 'translate(calc(-50% - 0.4em), -50%) rotate(180deg)';
+                        
+                        // 下方名字也需要同样的水平调整，保持相同的偏移补偿
+                        rightName.style.transform = 'translate(calc(-50% + 0.4em), 50%)';
+                    } else {
+                        // 三个字及以上的中文名字处理
+                        // 清除默认CSS类的transform
+                        leftName.style.transform = '';
+                        rightName.style.transform = '';
+                        
+                        // 应用新的transform
+                        leftName.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+                        rightName.style.transform = 'translate(-50%, 50%)';
+                    }
+                    
+                    // 添加元素到页面
+                    page.appendChild(leftName);
+                    page.appendChild(rightName);
+                    
+                    // 添加页面到预览区域
+                    previewArea.appendChild(page);
+                }
+            } else if (layoutMode === 'mode5') {
+                // 模式五：纵向A4纸对称旋转布局，每页一个名字，有横线和logo
+                for (let i = 0; i < names.length; i++) {
+                    const page = document.createElement('div');
+                    page.className = 'mode5-page';
+                    
+                    const nameText = names[i].trim();
+                    
+                    // 添加顶部横线
+                    const topLine = document.createElement('div');
+                    topLine.className = 'mode5-horizontal-line';
+                    topLine.style.top = '50mm';
+                    page.appendChild(topLine);
+                    
+                    // 添加中间横线
+                    const middleLine = document.createElement('div');
+                    middleLine.className = 'mode5-horizontal-line';
+                    middleLine.style.top = '50%';
+                    page.appendChild(middleLine);
+                    
+                    // 添加底部横线
+                    const bottomLine = document.createElement('div');
+                    bottomLine.className = 'mode5-horizontal-line';
+                    bottomLine.style.bottom = '50mm';
+                    page.appendChild(bottomLine);
+                    
+                    // 添加上方横线下方的小字（旋转180度）
+                    const topText = document.createElement('div');
+                    topText.className = 'mode5-text';
+                    topText.textContent = '以成就客户为先，以贡献者为本，坚持开放协作，持续追求卓越';
+                    topText.style.top = 'calc(50mm + 15px)'; // 位于上方横线下方15px处
+                    topText.style.transform = 'rotate(180deg)';
+                    page.appendChild(topText);
+                    
+                    // 添加下方横线上方的小字（正常方向）
+                    const bottomText = document.createElement('div');
+                    bottomText.className = 'mode5-text';
+                    bottomText.textContent = '以成就客户为先，以贡献者为本，坚持开放协作，持续追求卓越';
+                    bottomText.style.bottom = 'calc(50mm + 15px)'; // 位于下方横线上方15px处
+                    page.appendChild(bottomText);
+                    
+                    // 添加左上角logo
+                    const topLeftLogo = document.createElement('img');
+                    topLeftLogo.src = 'acd.png';
+                    topLeftLogo.className = 'mode5-logo';
+                    topLeftLogo.style.top = '155mm';
+                    topLeftLogo.style.left = '12mm';
+                    page.appendChild(topLeftLogo);
+                    
+                    // 添加右下角logo - 旋转180度
+                    const bottomRightLogo = document.createElement('img');
+                    bottomRightLogo.src = 'acd.png';
+                    bottomRightLogo.className = 'mode5-logo';
+                    bottomRightLogo.style.bottom = '155mm';
+                    bottomRightLogo.style.right = '12mm';
+                    bottomRightLogo.style.transform = 'rotate(180deg)';
+                    page.appendChild(bottomRightLogo);
+                    
+                    // 创建上方名字（旋转180度）
+                    const leftName = document.createElement('div');
+                    leftName.className = 'mode5-name left';
+                    leftName.textContent = nameText;
+                    leftName.style.zIndex = '2'; // 确保文字在图片上方
+                    
+                    // 创建下方名字（正常方向）
+                    const rightName = document.createElement('div');
+                    rightName.className = 'mode5-name right';
+                    rightName.textContent = nameText;
+                    rightName.style.zIndex = '2'; // 确保文字在图片上方
+                    
+                    // 检测是否为英文名字（包含英文字母或空格）
+                    const isEnglishName = /[a-zA-Z\s]/.test(nameText);
+                    
+                    // 如果是英文名字且较长，需要特殊处理
+                    if (isEnglishName) {
+                        // 添加英文名字标识类
+                        leftName.classList.add('english-name');
+                        rightName.classList.add('english-name');
+                        
+                        // 根据名字长度动态调整字体大小
+                        let fontSize = 110; // 默认字体大小
+                        let lineHeight = 1.2; // 默认行高
+                        
+                        // 解析名字，处理可能包含连字符的情况
+                        const nameWords = nameText.split(/[\s-]+/).filter(word => word.trim() !== '');
+                        const totalLength = nameText.length;
+                        const wordCount = nameWords.length;
+                        
+                        // 动态调整字体大小
+                        if (totalLength > 20 || wordCount >= 4) {
+                            fontSize = 60; // 非常长的名字
+                            lineHeight = 1.1;
+                        } else if (totalLength > 15 || wordCount >= 3) {
+                            fontSize = 75; // 较长的名字
+                            lineHeight = 1.15;
+                        } else if (totalLength > 10 || wordCount >= 2) {
+                            fontSize = 90; // 中等长度的名字
+                        }
+                        
+                        // 应用字体大小和行高
+                        leftName.style.fontSize = `${fontSize}px`;
+                        rightName.style.fontSize = `${fontSize}px`;
+                        leftName.style.lineHeight = lineHeight.toString();
+                        rightName.style.lineHeight = lineHeight.toString();
+                        
+                        // 启用自动换行
+                        leftName.style.whiteSpace = 'pre-wrap';
+                        rightName.style.whiteSpace = 'pre-wrap';
+                        
+                        // 调整位置，确保文本居中显示
+                        leftName.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+                        rightName.style.transform = 'translate(-50%, 50%)';
+                        
+                        // 根据名字长度和结构决定如何分行显示
+                        let formattedText = nameText;
+                        
+                        // 特殊处理类似于"Schaerer-Lim Mei Qin Genevieve"这样的格式
+                        if (nameText.includes('-') || wordCount >= 3) {
+                            // 检查是否为带连字符的英文名，如"Schaerer-Lim Mei Qin Genevieve"
+                            if (nameText.includes('-')) {
+                                // 将连字符部分作为第一行
+                                const hyphenParts = nameText.split(' ');
+                                const firstPart = hyphenParts[0]; // 获取"Schaerer-Lim"部分
+                                const secondPart = hyphenParts.slice(1).join(' '); // 获取后面的名字部分
+                                formattedText = `${firstPart}\n${secondPart}`;
+                            } else {
+                                // 针对"Schaerer-Lim Mei Qin Genevieve"这样的名字特殊处理
+                                const specialNames = [
+                                    "Schaerer-Lim Mei Qin Genevieve",
+                                    "Schaerer Lim Mei Qin Genevieve"
+                                ];
+                                
+                                if (specialNames.includes(nameText)) {
+                                    formattedText = "Schaerer-Lim\nMei Qin Genevieve";
+                                } else {
+                                    // 常规长名字处理
+                                    const midPoint = nameText.indexOf(' ', nameText.length / 3);
+                                    
+                                    if (midPoint > 0) {
+                                        // 将名字分为两行，在某个位置分隔
+                                        const firstPart = nameText.substring(0, midPoint);
+                                        const secondPart = nameText.substring(midPoint).trim();
+                                        formattedText = `${firstPart}\n${secondPart}`;
+                                    } else {
+                                        // 如果找不到合适的分行点，按照单词数量分行
+                                        const midWordIndex = Math.ceil(wordCount / 2);
+                                        const firstLine = nameWords.slice(0, midWordIndex).join(' ');
+                                        const secondLine = nameWords.slice(midWordIndex).join(' ');
+                                        formattedText = `${firstLine}\n${secondLine}`;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        leftName.textContent = formattedText;
+                        rightName.textContent = formattedText;
+                    }
+                    // 如果是两个字的中文名字，添加特殊处理
+                    else if (nameText.length === 2) {
+                        leftName.classList.add('two-chars');
+                        rightName.classList.add('two-chars');
+                        
+                        // 对两个字的名字应用完全自定义的样式
+                        leftName.style.letterSpacing = '0.8em';
+                        rightName.style.letterSpacing = '0.8em';
+                        
+                        // 清除默认CSS类的transform
+                        leftName.style.transform = '';
+                        rightName.style.transform = '';
+                        
+                        // 上方名字（旋转的）需要独立调整
+                        leftName.style.transform = 'translate(calc(-50% - 0.4em), -50%) rotate(180deg)';
+                        
+                        // 下方名字也需要同样的水平调整，保持相同的偏移补偿
+                        rightName.style.transform = 'translate(calc(-50% + 0.4em), 50%)';
+                    } else {
+                        // 三个字及以上的中文名字处理
+                        // 清除默认CSS类的transform
+                        leftName.style.transform = '';
+                        rightName.style.transform = '';
+                        
+                        // 应用新的transform
+                        leftName.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+                        rightName.style.transform = 'translate(-50%, 50%)';
+                    }
+                    
+                    // 添加元素到页面
+                    page.appendChild(leftName);
+                    page.appendChild(rightName);
+                    
+                    // 添加页面到预览区域
+                    previewArea.appendChild(page);
+                }
+            } else if (layoutMode === 'mode6') {
+                // 模式六：网格布局，每页8个名牌（中文+固定文本）
+                for (let i = 0; i < names.length; i += 8) {
+                    const page = document.createElement('div');
+                    page.className = 'page';
+                    page.style.position = 'relative';
+                    page.style.width = '210mm';
+                    page.style.height = '297mm';
+                    
+                    const grid = document.createElement('div');
+                    grid.className = 'mode6-grid';
+                    page.appendChild(grid);
+                    
+                    // 添加水平和垂直分割线
+                    const horizontalLine = document.createElement('div');
+                    horizontalLine.className = 'mode6-horizontal-line';
+                    grid.appendChild(horizontalLine);
+                    
+                    const verticalLine = document.createElement('div');
+                    verticalLine.className = 'mode6-vertical-line';
+                    grid.appendChild(verticalLine);
+                    
+                    // 计算当前页面应该包含的名字数量
+                    const namesInThisPage = Math.min(8, names.length - i);
+                    
+                    // 创建名牌
+                    for (let j = 0; j < namesInThisPage; j++) {
+                        const name = names[i + j].trim();
+                        
+                        // 创建模式六的卡片
+                        const card = createMode6Card(name);
+                        
+                        grid.appendChild(card);
+                    }
+                    
+                    previewArea.appendChild(page);
+                }
+            }
+        });
+    </script>
+    
+    <script>
+        // 简单而直接的拼音转换函数
+        function toPinyin(chinese) {
+            if (!chinese || chinese.trim() === '') return '';
+            
+            try {
+                // 检查pinyinPro全局对象
+                if (typeof pinyinPro === 'object' && typeof pinyinPro.pinyin === 'function') {
+                    // 使用pinyin-pro的pinyin函数获取拼音数组
+                    let pinyinResult = pinyinPro.pinyin(chinese, {
+                        toneType: 'none',     // 不带声调
+                        type: 'array',        // 返回数组格式，便于处理
+                        separator: ' '        // 空格分隔
+                    });
+                    
+                    // 手动将每个拼音的首字母转为大写
+                    return pinyinResult.map(word => {
+                        if (word && word.length > 0) {
+                            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                        }
+                        return word;
+                    }).join(' ');
+                } else {
+                    console.error('pinyinPro库未正确加载');
+                    return chinese;
+                }
+            } catch (error) {
+                console.error('拼音转换错误:', error);
+                return chinese;
+            }
+        }
+
+        function createMode2Card(name, pinyin) {
+            const card = document.createElement('div');
+            card.className = 'mode2-card';
+
+            // 添加logo
+            const logo = document.createElement('img');
+            logo.src = '/static/assets/meeting_badge/logo.png';
+            logo.className = 'mode2-logo';
+            card.appendChild(logo);
+
+            // 添加姓名
+            const nameElement = document.createElement('div');
+            nameElement.className = 'mode2-name' + (name.length === 2 ? ' two-chars' : '');
+            nameElement.textContent = name;
+            card.appendChild(nameElement);
+
+            // 添加拼音
+            const pinyinElement = document.createElement('div');
+            pinyinElement.className = 'mode2-pinyin';
+            pinyinElement.textContent = pinyin;
+            card.appendChild(pinyinElement);
+
+            return card;
+        }
+
+        // 创建模式六卡片函数
+        function createMode6Card(name) {
+            const card = document.createElement('div');
+            card.className = 'mode6-card';
+            
+            // 添加logo
+            const logo = document.createElement('img');
+            logo.src = 'acd.png';
+            logo.className = 'mode6-logo';
+            card.appendChild(logo);
+            
+            // 创建名字元素
+            const nameElement = document.createElement('div');
+            
+            // 检测是否为英文名字（包含英文字母或空格）
+            const isEnglishName = /[a-zA-Z\s]/.test(name);
+            
+            if (isEnglishName) {
+                nameElement.className = 'mode6-name';
+                
+                // 解析名字，处理可能包含连字符的情况
+                const nameWords = name.split(/[\s-]+/).filter(word => word.trim() !== '');
+                const totalLength = name.length;
+                const wordCount = nameWords.length;
+                
+                // 动态调整字体大小
+                let fontSize = 55; // 更小的默认字体大小
+                if (totalLength > 20 || wordCount >= 4) {
+                    fontSize = 32; // 非常长的名字
+                } else if (totalLength > 15 || wordCount >= 3) {
+                    fontSize = 40; // 较长的名字
+                } else if (totalLength > 10 || wordCount >= 2) {
+                    fontSize = 45; // 中等长度的名字
+                }
+                
+                nameElement.style.fontSize = `${fontSize}px`;
+                
+                // 处理换行
+                if (wordCount > 1) {
+                    // 设置自动换行
+                    nameElement.style.whiteSpace = 'pre-wrap';
+                    nameElement.style.lineHeight = '1.1';
+                    
+                    // 根据单词数量确定换行位置
+                    let formattedText = name;
+                    if (wordCount === 2) {
+                        // 两个单词，放一行
+                        formattedText = name;
+                    } else if (wordCount === 3) {
+                        // 三个单词，第一个单词一行，后两个一行
+                        const words = name.split(' ');
+                        formattedText = `${words[0]}\n${words[1]} ${words[2]}`;
+                    } else {
+                        // 四个或更多单词，尝试均匀分配
+                        const midPoint = Math.ceil(wordCount / 2);
+                        const firstLine = nameWords.slice(0, midPoint).join(' ');
+                        const secondLine = nameWords.slice(midPoint).join(' ');
+                        formattedText = `${firstLine}\n${secondLine}`;
+                    }
+                    
+                    nameElement.textContent = formattedText;
+                } else {
+                    nameElement.textContent = name;
+                }
+            } else {
+                // 检测名字长度，应用不同样式
+                if (name.length === 2) {
+                    nameElement.className = 'mode6-name two-chars';
+                } else {
+                    nameElement.className = 'mode6-name';
+                }
+                
+                nameElement.textContent = name;
+            }
+            
+            // 无论中英文名字，都使用相同的上边距
+            nameElement.style.marginTop = 'calc(0mm + 10px)';
+            
+            // 创建底部文本元素，使用用户输入的文本
+            const textElement = document.createElement('div');
+            textElement.className = 'mode6-pinyin';
+            
+            // 获取用户输入的底部文字
+            const mode6SubtextInput = document.getElementById('mode6Subtext');
+            textElement.textContent = mode6SubtextInput.value.trim();
+            
+            // 固定文本位置，无论中英文名字使用相同的位置
+            // 使用绝对位置而非相对位置，确保固定在卡片底部的固定位置
+            textElement.style.position = 'absolute';
+            textElement.style.bottom = '10mm';
+            textElement.style.left = '0';
+            textElement.style.width = '100%';
+            textElement.style.fontSize = '18px';
+            
+            card.appendChild(nameElement);
+            card.appendChild(textElement);
+            
+            return card;
+        }
+    </script>
+</body>
+</html>

@@ -1,22 +1,22 @@
 {
-  "total_helps": 15,
-  "total_minutes_saved": 330,
+  "total_helps": 55,
+  "total_minutes_saved": 384,
   "tools": {
     "document": {
-      "uses": 15,
+      "uses": 17,
       "minutes_per_use": 22
     },
     "meeting_badge": {
-      "uses": 0,
-      "minutes_per_use": 0
+      "uses": 36,
+      "minutes_per_use": 10
     },
     "seat_badge_suzhou": {
-      "uses": 0,
-      "minutes_per_use": 0
+      "uses": 1,
+      "minutes_per_use": 10
     },
     "seat_badge_shenzhen": {
-      "uses": 0,
-      "minutes_per_use": 0
+      "uses": 1,
+      "minutes_per_use": 10
     }
   }
 }

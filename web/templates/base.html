@@ -11,6 +11,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="https://unpkg.com/pinyin-pro@3.18.6/dist/index.js"></script>
     
     <style>
         :root {
@@ -48,7 +49,7 @@
         
         body {
             background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
-            min-h-screen: 100vh;
+            min-height: 100vh;
         }
         
         .glass-card {
@@ -107,6 +108,7 @@
         .line-clamp-1 {
             display: -webkit-box;
             -webkit-line-clamp: 1;
+            line-clamp: 1;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -114,6 +116,7 @@
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -218,6 +221,594 @@
             bottom: -50px;
             left: -50px;
         }
+
+        /* ========== 会议名牌专用样式 ========== */
+
+        /* A4 纸张容器 */
+        .meeting-badge-page {
+            position: relative;
+            width: 210mm;
+            height: 297mm;
+            background: white;
+            margin: 0 auto 10mm auto;
+            border: 1px solid #dfe4ea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border-radius: 2px;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        /* 模式一：背景图片 */
+        .mode1-bg-image {
+            position: absolute;
+            width: 210mm;
+            height: 99mm;
+            left: 0;
+            z-index: 1;
+            object-fit: contain;
+            object-position: center;
+            max-width: 100%;
+        }
+
+        .mode1-bg-image.bg-image-1 {
+            top: 0;
+        }
+
+        .mode1-bg-image.bg-image-2 {
+            top: 99mm;
+        }
+
+        .mode1-bg-image.bg-image-3 {
+            top: 198mm;
+        }
+
+        /* 模式一：名字 */
+        .meeting-badge-name {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            text-align: center;
+            font-size: 127px;
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
+            font-weight: 500;
+            color: #000000;
+            text-shadow: none;
+            font-family: 'Noto Sans SC', sans-serif;
+            z-index: 2;
+        }
+
+        .meeting-badge-name.name-1 {
+            top: 23mm;
+        }
+
+        .meeting-badge-name.name-2 {
+            top: 121mm;
+        }
+
+        .meeting-badge-name.name-3 {
+            top: 220mm;
+        }
+
+        /* 两字姓名特殊样式 */
+        .meeting-badge-name.two-chars {
+            letter-spacing: 1em;
+            text-align: center;
+            width: 100%;
+            padding-left: 0;
+            box-sizing: border-box;
+            transform: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-left: 0.5em;
+        }
+
+        /* 模式二：网格布局 */
+        .mode2-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            width: 100%;
+            height: 100%;
+            position: relative;
+            gap: 0;
+        }
+
+        /* 分割线 */
+        .mode2-grid::before,
+        .mode2-grid::after,
+        .mode6-grid::before,
+        .mode6-grid::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+
+        .mode2-grid::before,
+        .mode6-grid::before {
+            top: 25%;
+        }
+
+        .mode2-grid::after,
+        .mode6-grid::after {
+            top: 50%;
+        }
+
+        .horizontal-line,
+        .mode6-horizontal-line {
+            position: absolute;
+            top: 75%;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+
+        .vertical-line,
+        .mode6-vertical-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2.5px;
+            background-color: #aaaaaa;
+            z-index: 2;
+        }
+
+        /* Logo 样式 */
+        .mode2-logo {
+            position: absolute;
+            top: 5mm;
+            left: 5mm;
+            height: 30px;
+            z-index: 2;
+        }
+
+        /* 模式二卡片 */
+        .mode2-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10mm 5mm;
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+        }
+
+        .mode2-name {
+            font-size: 96px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10mm 0 10px 0;
+            line-height: 1;
+            color: #000000;
+            width: 100%;
+        }
+
+        .mode2-pinyin {
+            font-size: 26px;
+            text-align: center;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            color: #000000;
+            width: 100%;
+            margin: 2mm 0 10px 0;
+            line-height: 1;
+        }
+
+        .mode2-name.two-chars {
+            letter-spacing: 0.3em;
+            text-align: center;
+            width: 100%;
+            margin-top: 10mm;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 0.15em;
+        }
+
+        /* 模式三、四、五页面 */
+        .mode3-page,
+        .mode4-page,
+        .mode5-page {
+            position: relative;
+            width: 210mm;
+            height: 297mm;
+            background: white;
+            page-break-after: always;
+            margin: 0 auto 10mm auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #dfe4ea;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border-radius: 2px;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        /* 模式三名字 */
+        .mode3-name,
+        .mode4-name,
+        .mode5-name {
+            position: absolute;
+            font-size: 140px;
+            font-weight: bold;
+            transform-origin: center;
+            text-align: center;
+            width: 100%;
+            color: #000000;
+            margin: 0;
+            padding: 0;
+            z-index: 2;
+        }
+
+        .mode5-name {
+            font-size: 160px;
+        }
+
+        .mode3-name.left,
+        .mode4-name.left,
+        .mode5-name.left {
+            top: 89mm;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(180deg);
+        }
+
+        .mode3-name.right,
+        .mode4-name.right,
+        .mode5-name.right {
+            bottom: 89mm;
+            left: 50%;
+            transform: translate(-50%, 50%);
+        }
+
+        .mode4-name.left {
+            top: 30%;
+        }
+
+        .mode4-name.right {
+            bottom: 30%;
+        }
+
+        .mode5-name.left {
+            top: 32%;
+        }
+
+        .mode5-name.right {
+            bottom: 32%;
+        }
+
+        /* 英文名字特殊样式 */
+        .mode3-name.english-name,
+        .mode4-name.english-name,
+        .mode5-name.english-name {
+            text-align: center;
+            width: 80%;
+            max-width: 180mm;
+            word-wrap: break-word;
+            word-break: normal;
+            white-space: pre-wrap;
+            margin: 0 auto;
+            padding: 0 10mm;
+        }
+
+        /* 两字名字特殊样式 */
+        .mode3-name.two-chars,
+        .mode4-name.two-chars,
+        .mode5-name.two-chars {
+            letter-spacing: 0.8em;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* 横线样式 */
+        .mode3-horizontal-line,
+        .mode4-horizontal-line,
+        .mode5-horizontal-line {
+            position: absolute;
+            width: 100%;
+            height: 2.5px;
+            background-color: #aaaaaa;
+            left: 0;
+            z-index: 1;
+        }
+
+        .mode4-horizontal-line,
+        .mode5-horizontal-line {
+            height: 1px;
+        }
+
+        .mode5-horizontal-line {
+            border-top: 1px dashed #aaaaaa;
+            background: none;
+        }
+
+        .mode4-horizontal-line:nth-child(1),
+        .mode5-horizontal-line:nth-child(1) {
+            top: 50mm;
+        }
+
+        .mode4-horizontal-line:nth-child(2),
+        .mode5-horizontal-line:nth-child(2) {
+            top: 50%;
+        }
+
+        .mode4-horizontal-line:nth-child(3),
+        .mode5-horizontal-line:nth-child(3) {
+            bottom: 50mm;
+        }
+
+        /* Logo 样式（模式四、五） */
+        .mode4-logo,
+        .mode5-logo {
+            position: absolute;
+            height: 14mm;
+            z-index: 1;
+        }
+
+        .mode4-logo:nth-child(1),
+        .mode5-logo:nth-child(1) {
+            top: 160mm;
+            left: 15mm;
+        }
+
+        .mode4-logo:nth-child(2),
+        .mode5-logo:nth-child(2) {
+            bottom: 160mm;
+            right: 15mm;
+            transform: rotate(180deg);
+        }
+
+        .mode5-logo:nth-child(1) {
+            top: 155mm;
+            left: 12mm;
+        }
+
+        .mode5-logo:nth-child(2) {
+            bottom: 155mm;
+            right: 12mm;
+        }
+
+        /* 模式五：小字说明文本 */
+        .mode5-text {
+            position: absolute;
+            width: 100%;
+            font-size: 14px;
+            text-align: center;
+            color: #000000;
+            z-index: 2;
+            font-weight: normal;
+        }
+
+        .mode5-text:nth-child(1) {
+            top: calc(50mm + 15px);
+            transform: rotate(180deg);
+        }
+
+        .mode5-text:nth-child(2) {
+            bottom: calc(50mm + 15px);
+        }
+
+        /* 模式六：网格布局 */
+        .mode6-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            width: 100%;
+            height: 100%;
+            position: relative;
+            gap: 0;
+        }
+
+        .mode6-logo {
+            position: absolute;
+            top: 6.5mm;
+            left: 6.5mm;
+            height: 34px;
+            z-index: 2;
+        }
+
+        .mode6-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5mm 5mm;
+            box-sizing: border-box;
+            height: 100%;
+            width: 100%;
+        }
+
+        .mode6-name {
+            font-size: 80px;
+            font-weight: bold;
+            text-align: center;
+            margin: 5mm 0 5px 0;
+            line-height: 1;
+            color: #000000;
+            width: 100%;
+        }
+
+        .mode6-pinyin {
+            font-size: 16px;
+            text-align: center;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            color: #000000;
+            width: 100%;
+            margin: 0 0 5px 0;
+            line-height: 1;
+            position: absolute;
+            bottom: 10mm;
+            left: 0;
+            font-size: 18px;
+        }
+
+        .mode6-name.two-chars {
+            letter-spacing: 0.3em;
+            text-align: center;
+            width: 100%;
+            margin-top: 10mm;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 0.15em;
+        }
+
+        /* 页面分隔线 */
+        .meeting-badge-page:not(:last-child):after {
+            content: '';
+            position: absolute;
+            bottom: -5mm;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #dfe4ea 20%, #dfe4ea 80%, transparent);
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        /* 爱心泡泡动画 */
+        @keyframes meetingBadgeFloat {
+            0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.9; }
+            50% { transform: translateY(-80px) scale(1.1) rotate(10deg); opacity: 0.6; }
+            100% { transform: translateY(-250px) scale(0.8) rotate(20deg); opacity: 0; }
+        }
+
+        .meeting-badge-heart {
+            position: absolute;
+            font-size: 28px;
+            color: #e74c3c;
+            pointer-events: none;
+            z-index: 1000;
+            animation: meetingBadgeFloat 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+            text-shadow: none;
+        }
+
+        /* 打印样式 */
+        @page {
+            size: A4;
+            margin: 0;
+            orphans: 0;
+            widows: 0;
+        }
+
+        @media print {
+            * {
+                box-sizing: border-box !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            html, body { 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                background-color: white !important; 
+                background-image: none !important; 
+                overflow: visible !important; 
+                min-height: auto !important;
+                width: 100% !important;
+                height: auto !important;
+            }
+            
+            /* 隐藏所有不需要打印的元素 */
+            .no-print,
+            #header,
+            #categoryNav,
+            .glass-card:not(#meetingBadgePreviewArea),
+            .decorative-blob,
+            .blob-1,
+            .blob-2,
+            header,
+            aside {
+                display: none !important;
+                height: 0 !important;
+                width: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                position: absolute !important;
+                overflow: hidden !important;
+            }
+            
+            /* 彻底重置所有外层容器的打印样式，脱离正常的文档流干扰 */
+            #appLayout, 
+            #mainContent, 
+            #meetingBadgePreviewArea {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                max-width: none !important;
+                width: 100% !important;
+                min-height: 0 !important;
+                height: auto !important;
+                box-shadow: none !important;
+                background: transparent !important;
+                border: none !important;
+                overflow: visible !important;
+                position: static !important;
+                transform: none !important;
+                float: none !important;
+            }
+            
+            /* 保证A4容器自身的精确尺寸 */
+            .meeting-badge-page,
+            .mode3-page,
+            .mode4-page,
+            .mode5-page {
+                margin: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                box-sizing: border-box !important;
+                width: 210mm !important;
+                height: 297mm !important;
+                max-width: none !important;
+                max-height: none !important;
+                position: relative !important;
+                transform: none !important;
+                display: block !important;
+                background-color: white !important;
+            }
+            
+            .meeting-badge-page:not(:last-child),
+            .mode3-page:not(:last-child),
+            .mode4-page:not(:last-child),
+            .mode5-page:not(:last-child) {
+                page-break-after: always;
+                break-after: page;
+            }
+            
+            .meeting-badge-page:last-child,
+            .mode3-page:last-child,
+            .mode4-page:last-child,
+            .mode5-page:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+            
+            .meeting-badge-page:not(:last-child):after {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen relative overflow-x-hidden">
@@ -267,7 +858,7 @@
         </div>
     </header>
     
-    <div class="flex max-w-7xl mx-auto px-6 py-8 gap-8 min-h-[calc(100vh-140px)]">
+    <div id="appLayout" class="flex max-w-7xl mx-auto px-6 py-8 gap-8 min-h-[calc(100vh-140px)]">
         <aside class="w-48 shrink-0">
             <div class="glass-card rounded-3xl p-4 sticky top-28 h-full">
                 <nav id="categoryNav" class="space-y-1">

@@ -134,7 +134,12 @@ function renderCategoryTools() {
     mainContent.querySelectorAll('.tool-card').forEach(card => {
         card.addEventListener('click', function() {
             const toolId = this.dataset.toolId;
-            navigateTo('/tool/' + toolId);
+            if (toolId === 'meeting_badge') {
+                // 如果是会议名牌工具，则直接打开独立的 HTML 页面（保留原版打印功能）
+                window.open('/tool/meeting_badge', '_blank');
+            } else {
+                navigateTo('/tool/' + toolId);
+            }
         });
     });
 }

@@ -92,7 +92,30 @@ def index():
 
 @app.route('/tool/<tool_id>')
 def tool_page(tool_id):
+    if tool_id == 'meeting_badge':
+        return render_template('meeting_badge_standalone.html')
     return render_template('base.html')
+
+@app.route('/api/stats/increment', methods=['POST'])
+def api_increment_stats():
+    """通用统计增加接口"""
+    data = request.json
+    if not data or 'tool_id' not in data:
+        return jsonify({"error": "缺少 tool_id"}), 400
+    
+    tool_id = data['tool_id']
+    stats = load_stats()
+    
+    if tool_id not in stats["tools"]:
+        return jsonify({"error": "未知的 tool_id"}), 400
+        
+    # 如果 minutes_per_use 是 0，给他一个默认值，比如 10
+    if stats["tools"][tool_id].get("minutes_per_use", 0) == 0:
+        stats["tools"][tool_id]["minutes_per_use"] = 10
+        save_stats(stats)
+        
+    stats = increment_tool_usage(tool_id)
+    return jsonify({"success": True, "stats": stats})
 
 @app.route('/api/document/convert', methods=['POST'])
 def convert_document():
