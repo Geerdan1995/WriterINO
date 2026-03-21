@@ -772,6 +772,10 @@ function initDocumentToolPage() {
         fileInfo.classList.remove('hidden');
         actionArea.classList.remove('hidden');
         convertBtn.disabled = false;
+        
+        // 给上传区域添加已选择文件的样式类
+        const uploadArea = document.getElementById('uploadArea');
+        if (uploadArea) uploadArea.classList.add('has-file');
     }
     
     resetBtn.addEventListener('click', () => {
@@ -784,6 +788,10 @@ function initDocumentToolPage() {
         downloadWordBtn.classList.add('hidden');
         downloadPdfBtn.classList.add('hidden');
         statusText.textContent = '';
+        
+        // 移除上传区域已选择文件的样式类
+        const uploadArea = document.getElementById('uploadArea');
+        if (uploadArea) uploadArea.classList.remove('has-file');
     });
     
     if (downloadWordBtn) {
@@ -1698,6 +1706,9 @@ function initSeatBadgeSuzhouPage() {
         fileInfo.classList.remove('hidden');
         actionArea.classList.remove('hidden');
         generateBtn.disabled = false;
+        
+        // 给上传区域添加已选择文件的样式类
+        if (uploadArea) uploadArea.classList.add('has-file');
     }
     
     resetBtn.addEventListener('click', () => {
@@ -1709,6 +1720,9 @@ function initSeatBadgeSuzhouPage() {
         generateBtn.classList.add('hidden');
         downloadPdfBtn.classList.add('hidden');
         statusText.textContent = '';
+        
+        // 移除上传区域已选择文件的样式类
+        if (uploadArea) uploadArea.classList.remove('has-file');
     });
     
     if (downloadPdfBtn) {
@@ -1864,6 +1878,9 @@ function initSeatBadgeShenzhenPage() {
         fileInfo.classList.remove('hidden');
         actionArea.classList.remove('hidden');
         generateBtn.disabled = false;
+        
+        // 给上传区域添加已选择文件的样式类
+        if (uploadArea) uploadArea.classList.add('has-file');
     }
     
     resetBtn.addEventListener('click', () => {
@@ -1875,6 +1892,9 @@ function initSeatBadgeShenzhenPage() {
         generateBtn.classList.add('hidden');
         downloadPdfBtn.classList.add('hidden');
         statusText.textContent = '';
+        
+        // 移除上传区域已选择文件的样式类
+        if (uploadArea) uploadArea.classList.remove('has-file');
     });
     
     if (downloadPdfBtn) {
